@@ -8,7 +8,8 @@
       "prompt_via": "arg",
       "model": null,
       "result_path": "result",
-      "timeout": 300
+      "timeout": 300,
+      "paid": false
     },
     {
       "id": "opencode-ollama",
@@ -18,7 +19,8 @@
       "prompt_via": "arg",
       "model": "ollama/qwen2.5-coder:14b",
       "result_path": null,
-      "timeout": 600
+      "timeout": 600,
+      "paid": false
     },
     {
       "id": "codex",
@@ -28,7 +30,8 @@
       "prompt_via": "arg",
       "model": null,
       "result_path": null,
-      "timeout": 300
+      "timeout": 300,
+      "paid": true
     },
     {
       "id": "gemini",
@@ -38,7 +41,8 @@
       "prompt_via": "arg",
       "model": "gemini-2.5-pro",
       "result_path": null,
-      "timeout": 300
+      "timeout": 300,
+      "paid": true
     },
     {
       "id": "aider-ollama",
@@ -48,7 +52,8 @@
       "prompt_via": "arg",
       "model": "ollama/deepseek-coder-v2",
       "result_path": null,
-      "timeout": 600
+      "timeout": 600,
+      "paid": false
     },
     {
       "id": "qwen",
@@ -58,7 +63,8 @@
       "prompt_via": "arg",
       "model": null,
       "result_path": "response",
-      "timeout": 300
+      "timeout": 300,
+      "paid": true
     }
   ],
   "synthesizer": {

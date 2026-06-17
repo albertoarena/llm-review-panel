@@ -22,6 +22,7 @@ final readonly class ReviewerConfig
         public ?string $model,
         public ?string $resultPath,
         public int $timeout,
+        public bool $paid = false,
     ) {
     }
 }

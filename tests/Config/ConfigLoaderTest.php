@@ -135,6 +135,32 @@ it('throws on non-positive timeout', function (): void {
     $this->loader->load($path);
 })->throws(ConfigException::class, 'timeout');
 
+it('defaults paid to false when omitted', function (): void {
+    $path = writeTempConfig(validConfigData());
+
+    $config = $this->loader->load($path);
+
+    expect($config->reviewers[0]->paid)->toBeFalse();
+});
+
+it('parses paid=true when set', function (): void {
+    $data = validConfigData();
+    $data['reviewers'][0]['paid'] = true;
+    $path = writeTempConfig($data);
+
+    $config = $this->loader->load($path);
+
+    expect($config->reviewers[0]->paid)->toBeTrue();
+});
+
+it('throws when paid is not a boolean', function (): void {
+    $data = validConfigData();
+    $data['reviewers'][0]['paid'] = 'yes';
+    $path = writeTempConfig($data);
+
+    $this->loader->load($path);
+})->throws(LlmReviewPanel\Config\ConfigException::class, 'paid');
+
 it('exposes enabledReviewers helper', function (): void {
     $data = validConfigData();
     $data['reviewers'][] = [

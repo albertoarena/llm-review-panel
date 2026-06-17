@@ -25,6 +25,7 @@ edit. `config.json` is gitignored; `config.example.json` is committed.
 | `model`       | string/null | Substituted into `{model}`. Only used if `{model}` appears in `args`.                         |
 | `result_path` | string/null | Dot-path into JSON stdout to extract review text. `null` = use entire stdout as text.         |
 | `timeout`     | int         | Seconds before the process is killed and recorded as failed.                                  |
+| `paid`        | bool        | Optional, default `false`. Marks the reviewer as per-token billed. Drives a warning at checkpoint 1 so you know what an enabled panel will cost. |
 
 ## Placeholder rules
 

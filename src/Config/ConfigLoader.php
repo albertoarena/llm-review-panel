@@ -25,6 +25,18 @@ final class ConfigLoader
         'model',
         'result_path',
         'timeout',
+        'paid',
+    ];
+
+    private const REVIEWER_REQUIRED_FIELDS = [
+        'id',
+        'enabled',
+        'command',
+        'args',
+        'prompt_via',
+        'model',
+        'result_path',
+        'timeout',
     ];
 
     private const SYNTHESIZER_FIELDS = ['reviewer_id', 'prompt_file'];
@@ -100,7 +112,7 @@ final class ConfigLoader
 
             $label = "reviewers[{$i}]";
             $this->assertKnownKeys($entry, self::REVIEWER_FIELDS, $label);
-            $this->assertRequiredKeys($entry, self::REVIEWER_FIELDS, $label);
+            $this->assertRequiredKeys($entry, self::REVIEWER_REQUIRED_FIELDS, $label);
 
             $id = $entry['id'];
             if (! is_string($id) || $id === '') {
@@ -147,6 +159,11 @@ final class ConfigLoader
                 throw new ConfigException("{$label}.timeout must be a positive integer");
             }
 
+            $paid = $entry['paid'] ?? false;
+            if (! is_bool($paid)) {
+                throw new ConfigException("{$label}.paid must be a boolean");
+            }
+
             $parsed[] = new ReviewerConfig(
                 id: $id,
                 enabled: $enabled,
@@ -156,6 +173,7 @@ final class ConfigLoader
                 model: $model,
                 resultPath: $resultPath,
                 timeout: $timeout,
+                paid: $paid,
             );
         }
 
