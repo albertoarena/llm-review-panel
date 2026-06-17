@@ -127,16 +127,26 @@ final class ReviewPipeline
     private function classify(ReviewerConfig $reviewer, ProcessResult $result): ReviewerOutput
     {
         if ($result->timedOut) {
-            return ReviewerOutput::timeout($reviewer->id, $result->stderr);
+            return ReviewerOutput::timeout($reviewer->id, $result->stderr, $result->durationMs);
         }
         if ($result->exitCode !== 0) {
-            return ReviewerOutput::nonzeroExit($reviewer->id, $result->exitCode, $result->stderr);
+            return ReviewerOutput::nonzeroExit($reviewer->id, $result->exitCode, $result->stderr, $result->durationMs);
         }
         if (trim($result->stdout) === '') {
-            return ReviewerOutput::emptyStdout($reviewer->id, $result->stderr);
+            return ReviewerOutput::emptyStdout($reviewer->id, $result->stderr, $result->durationMs);
         }
 
-        return $this->parser->parse($reviewer, $result->stdout);
+        $parsed = $this->parser->parse($reviewer, $result->stdout);
+
+        return new ReviewerOutput(
+            reviewerId: $parsed->reviewerId,
+            content: $parsed->content,
+            unstructured: $parsed->unstructured,
+            status: $parsed->status,
+            failureReason: $parsed->failureReason,
+            stderr: $result->stderr,
+            durationMs: $result->durationMs,
+        );
     }
 
     private function findReviewer(Config $config, string $id): ReviewerConfig

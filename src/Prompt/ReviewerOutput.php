@@ -12,15 +12,17 @@ final readonly class ReviewerOutput
         public bool $unstructured,
         public ReviewerStatus $status = ReviewerStatus::Ok,
         public ?string $failureReason = null,
+        public string $stderr = '',
+        public int $durationMs = 0,
     ) {
     }
 
-    public static function timeout(string $reviewerId, string $stderr): self
+    public static function timeout(string $reviewerId, string $stderr, int $durationMs = 0): self
     {
-        return new self($reviewerId, '', false, ReviewerStatus::Timeout, $stderr);
+        return new self($reviewerId, '', false, ReviewerStatus::Timeout, $stderr, $stderr, $durationMs);
     }
 
-    public static function nonzeroExit(string $reviewerId, int $exitCode, string $stderr): self
+    public static function nonzeroExit(string $reviewerId, int $exitCode, string $stderr, int $durationMs = 0): self
     {
         return new self(
             $reviewerId,
@@ -28,11 +30,13 @@ final readonly class ReviewerOutput
             false,
             ReviewerStatus::NonzeroExit,
             "exit {$exitCode}: ".$stderr,
+            $stderr,
+            $durationMs,
         );
     }
 
-    public static function emptyStdout(string $reviewerId, string $stderr): self
+    public static function emptyStdout(string $reviewerId, string $stderr, int $durationMs = 0): self
     {
-        return new self($reviewerId, '', false, ReviewerStatus::EmptyStdout, $stderr);
+        return new self($reviewerId, '', false, ReviewerStatus::EmptyStdout, $stderr, $stderr, $durationMs);
     }
 }

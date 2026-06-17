@@ -16,7 +16,7 @@ final class RealProcessRunner implements ProcessRunner
     {
         $maxParallel = max(1, $maxParallel);
         $queue = $specs;
-        /** @var array<string, array{spec: ProcessSpec, process: Process}> $running */
+        /** @var array<string, array{spec: ProcessSpec, process: Process, startedAt: float}> $running */
         $running = [];
         /** @var array<string, ProcessResult> $results */
         $results = [];
@@ -24,9 +24,10 @@ final class RealProcessRunner implements ProcessRunner
         while ($queue !== [] || $running !== []) {
             while (count($running) < $maxParallel && $queue !== []) {
                 $spec = array_shift($queue);
-                $process = $this->start($spec, $results);
+                $startedAt = microtime(true);
+                $process = $this->start($spec, $results, $startedAt);
                 if ($process !== null) {
-                    $running[$spec->id] = ['spec' => $spec, 'process' => $process];
+                    $running[$spec->id] = ['spec' => $spec, 'process' => $process, 'startedAt' => $startedAt];
                 }
             }
 
@@ -47,6 +48,7 @@ final class RealProcessRunner implements ProcessRunner
                         stdout: $process->getOutput(),
                         stderr: $process->getErrorOutput(),
                         timedOut: true,
+                        durationMs: $this->elapsedMs($entry['startedAt']),
                     );
                     unset($running[$id]);
 
@@ -59,6 +61,7 @@ final class RealProcessRunner implements ProcessRunner
                         exitCode: $process->getExitCode() ?? -1,
                         stdout: $process->getOutput(),
                         stderr: $process->getErrorOutput(),
+                        durationMs: $this->elapsedMs($entry['startedAt']),
                     );
                     unset($running[$id]);
                 }
@@ -71,7 +74,7 @@ final class RealProcessRunner implements ProcessRunner
     /**
      * @param  array<string, ProcessResult>  $results
      */
-    private function start(ProcessSpec $spec, array &$results): ?Process
+    private function start(ProcessSpec $spec, array &$results, float $startedAt): ?Process
     {
         $process = new Process(
             command: [$spec->command, ...$spec->args],
@@ -87,11 +90,17 @@ final class RealProcessRunner implements ProcessRunner
                 exitCode: -1,
                 stdout: '',
                 stderr: $e->getMessage(),
+                durationMs: $this->elapsedMs($startedAt),
             );
 
             return null;
         }
 
         return $process;
+    }
+
+    private function elapsedMs(float $startedAt): int
+    {
+        return (int) round((microtime(true) - $startedAt) * 1000);
     }
 }

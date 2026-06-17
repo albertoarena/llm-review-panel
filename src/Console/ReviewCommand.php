@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace LlmReviewPanel\Console;
 
+use LlmReviewPanel\Persistence\RunPersister;
 use LlmReviewPanel\Pipeline\PreparedRun;
 use LlmReviewPanel\Pipeline\ReviewPipeline;
 use LlmReviewPanel\Prompt\CommandBuilder;
@@ -26,6 +27,7 @@ final class ReviewCommand extends Command
     public function __construct(
         private readonly ReviewPipeline $pipeline,
         private readonly CommandBuilder $builder = new CommandBuilder(),
+        private readonly RunPersister $persister = new RunPersister(),
     ) {
         parent::__construct();
     }
@@ -95,6 +97,8 @@ final class ReviewCommand extends Command
 
         if ($synthesis === null) {
             $output->writeln('<error>No reviewer produced usable output; synthesis skipped.</error>');
+            $runDir = $this->persister->persist($prepared, $outputs, null, RunPersister::timestamp());
+            $output->writeln("Manifest written to {$runDir}");
 
             return Command::FAILURE;
         }
@@ -105,7 +109,10 @@ final class ReviewCommand extends Command
             return Command::SUCCESS;
         }
 
+        $runDir = $this->persister->persist($prepared, $outputs, $synthesis, RunPersister::timestamp());
         $output->writeln($synthesis);
+        $output->writeln('');
+        $output->writeln("Run persisted to {$runDir}");
 
         return Command::SUCCESS;
     }

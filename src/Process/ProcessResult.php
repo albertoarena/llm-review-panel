@@ -12,6 +12,7 @@ final readonly class ProcessResult
         public string $stdout,
         public string $stderr,
         public bool $timedOut = false,
+        public int $durationMs = 0,
     ) {
     }
 
