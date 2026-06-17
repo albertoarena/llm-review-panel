@@ -1,0 +1,18 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+$autoload = (function (): string {
+    foreach ([__DIR__.'/../../../autoload.php', __DIR__.'/../vendor/autoload.php'] as $candidate) {
+        if (is_file($candidate)) {
+            return $candidate;
+        }
+    }
+    fwrite(STDERR, "Could not locate composer autoloader. Run 'composer install'.\n");
+    exit(1);
+})();
+
+require $autoload;
+
+(new LlmReviewPanel\Application())->run();

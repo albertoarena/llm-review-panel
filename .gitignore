@@ -11,3 +11,10 @@
 
 # Local config (real config; example is committed)
 config.json
+
+# Composer
+/vendor/
+
+# PHPUnit
+.phpunit.cache/
+.phpunit.result.cache

@@ -1,0 +1,39 @@
+{
+    "name": "albertoarena/llm-review-panel",
+    "description": "A PHP CLI that orchestrates code/plan reviews across multiple LLM command-line tools and synthesizes their outputs.",
+    "type": "project",
+    "license": "MIT",
+    "require": {
+        "php": "^8.3",
+        "symfony/console": "^7.0",
+        "symfony/process": "^7.0"
+    },
+    "require-dev": {
+        "pestphp/pest": "^3.0",
+        "laravel/pint": "^1.18"
+    },
+    "autoload": {
+        "psr-4": {
+            "LlmReviewPanel\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "LlmReviewPanel\\Tests\\": "tests/"
+        }
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    },
+    "bin": ["bin/llm-review-panel"],
+    "scripts": {
+        "test": "pest",
+        "format": "pint",
+        "format-check": "pint --test"
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}
