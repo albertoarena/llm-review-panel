@@ -165,9 +165,35 @@ whole pipeline is testable before any real CLI is invoked.
 
 ## Documentation site
 
-A static documentation site lives under `/website`, built with Astro and
-deployed to GitHub Pages on every push to `main`. Layout follows the standard
-Astro starter (`astro.config.mjs`, `package.json`, `src/`).
+A static documentation site lives under `/website`, built with **Astro
+Starlight** (not bare Astro) and deployed to GitHub Pages on every push to
+`main`. Layout follows the standard Starlight layout:
+
+- `astro.config.mjs` configures the `starlight` integration with site title,
+  sidebar groups, and GitHub repo link.
+- `src/content.config.ts` declares the `docs` content collection using
+  Starlight's `docsLoader` / `docsSchema`.
+- `src/content/docs/` holds the actual pages as `.md` / `.mdx`. URLs derive
+  from the file path: `src/content/docs/getting-started/installation.md`
+  serves at `/getting-started/installation/`.
+- `src/styles/` for any custom CSS pulled in via Starlight's `customCss`.
+
+Sidebar sections (use exactly these top-level groups):
+
+1. **Getting started** — installation, quick start, configuration basics.
+2. **Concepts** — what a panel is, how synthesis works, why disagreement matters,
+   the rubric.
+3. **Reviewers** — one page per supported reviewer recipe (Claude Code,
+   OpenCode + Ollama, Codex, Gemini, Aider, Qwen).
+4. **Reference** — full `config.json` schema, JSON output schema (mirrors
+   `docs/SCHEMA.md`), CLI options.
+5. **Guides** — practical walkthroughs (running a real review end-to-end,
+   writing a good rubric, iterating on the synthesis prompt).
+6. **Roadmap / ideas** — open questions and things we'd like to try.
+
+Use Starlight's built-in components (`<Tabs>`, `<Card>`, `<Aside>`,
+`<LinkCard>`, `<Steps>`) for callouts, install variants per shell, and stepped
+walkthroughs rather than hand-rolling markdown patterns.
 
 The site is the user-facing front door. It must cover:
 

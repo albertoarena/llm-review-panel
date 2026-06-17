@@ -105,11 +105,16 @@ records the failures in `manifest.json`.
 Done only after Phase 7 is green and the CLI runs end-to-end against at least
 two real reviewers.
 
-- Scaffold an Astro site under `/website` (standard starter layout:
-  `astro.config.mjs`, `package.json`, `src/pages`, `src/content`).
-- Pages: install/quick start, walkthrough of a real review with all three
-  checkpoints, one reviewer-setup recipe per supported tool, rubric/synthesis
-  tips, ideas/roadmap.
+- Scaffold an Astro **Starlight** site under `/website` (`npm create
+  astro@latest -- --template starlight`). Configure the Starlight integration
+  in `astro.config.mjs` with title, sidebar groups, GitHub repo link, and any
+  custom CSS.
+- Content under `src/content/docs/` as `.md` / `.mdx`. Top-level sidebar
+  groups: Getting started, Concepts, Reviewers, Reference, Guides, Roadmap
+  (see CLAUDE.md "Documentation site" for the exact structure).
+- Use Starlight components (`<Tabs>`, `<Card>`, `<Aside>`, `<Steps>`,
+  `<LinkCard>`) rather than hand-rolled markdown for callouts, install
+  variants, and stepped walkthroughs.
 - GitHub Actions workflow `.github/workflows/deploy-docs.yml` builds with
   `npm ci && npm run build` in `/website` and deploys `dist/` to GitHub Pages
   via `actions/deploy-pages`. Runs on push to `main` only; PRs build but do
