@@ -100,6 +100,26 @@ through each checkpoint branch (accept, re-run, abort).
 **Done when**: a successful run produces all files; a partially-failed run
 records the failures in `manifest.json`.
 
+## Phase 8: Documentation site
+
+Done only after Phase 7 is green and the CLI runs end-to-end against at least
+two real reviewers.
+
+- Scaffold an Astro site under `/website` (standard starter layout:
+  `astro.config.mjs`, `package.json`, `src/pages`, `src/content`).
+- Pages: install/quick start, walkthrough of a real review with all three
+  checkpoints, one reviewer-setup recipe per supported tool, rubric/synthesis
+  tips, ideas/roadmap.
+- GitHub Actions workflow `.github/workflows/deploy-docs.yml` builds with
+  `npm ci && npm run build` in `/website` and deploys `dist/` to GitHub Pages
+  via `actions/deploy-pages`. Runs on push to `main` only; PRs build but do
+  not deploy.
+- Enable GitHub Pages with source = GitHub Actions in repo settings.
+
+**Done when**: pushing to `main` publishes the updated site, and the rule
+"behavior change requires a `/website` update in the same PR" is enforceable
+(noted in PR template or CLAUDE.md).
+
 ## Out of scope (do not build)
 
 - PHP-side consensus/contested/singleton tagging. That is the synthesizer

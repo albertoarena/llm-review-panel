@@ -116,8 +116,8 @@ flags for other agentic CLIs.
   code to pass it, then refactor. New behavior without a preceding failing test
   is a smell; review-time question is "where's the red commit?"
 - Laravel Pint for formatting (works fine outside Laravel; pulled in as a dev
-  dependency). Run `vendor/bin/pint` before committing. CI should fail on
-  unformatted code.
+  dependency). Run `vendor/bin/pint` before committing. CI fails on unformatted
+  code (`vendor/bin/pint --test`).
 - KISS and clean separation: config loading, prompt assembly, process running,
   result parsing, synthesis, and CLI/IO are distinct concerns. No god classes.
 - Process spawning isolated behind one class so it can be faked in tests (do NOT
@@ -159,6 +159,60 @@ runs reproducible regardless of where the user invokes the CLI from.
 See `docs/IMPLEMENTATION.md` for the phased plan. Build and test each phase before
 moving on. Start with config + prompt assembly + a faked process runner so the
 whole pipeline is testable before any real CLI is invoked.
+
+## Documentation site
+
+A static documentation site lives under `/website`, built with Astro and
+deployed to GitHub Pages on every push to `main`. Layout follows the standard
+Astro starter (`astro.config.mjs`, `package.json`, `src/`).
+
+The site is the user-facing front door. It must cover:
+
+- How to install and run the CLI (mirrors the README quick start, expanded).
+- Practical examples: walking through a real review on a sample plan, showing
+  the three checkpoints with screenshots or transcripts.
+- Reviewer setup recipes (one per supported tool: Claude Code, OpenCode + Ollama,
+  Codex, Gemini, Aider, Qwen). Each recipe = install link + the exact
+  `config.json` entry + any auth gotchas.
+- Tips and suggestions: choosing a panel that disagrees usefully, how to write
+  a good rubric, how to iterate on the synthesis prompt.
+- An "ideas" / roadmap page that collects things we'd like to try.
+
+**Rule: when a change ships, the docs site must be updated in the same PR.** A
+PR that changes user-facing behavior (CLI flags, config schema, reviewer
+recipes, supported tools) without a corresponding `/website` change should be
+sent back. The CI job that builds the site (see below) catches breakage but
+not staleness; reviewers check for staleness.
+
+Timing: the site is one of the **last phases** of work (see
+`docs/IMPLEMENTATION.md`). Wait until the tool actually runs end-to-end before
+investing in docs content. A site that documents a vapor CLI is worse than no
+site.
+
+## CI
+
+GitHub Actions workflow at `.github/workflows/ci.yml`. Runs on push and PR
+against `main`. Required jobs (all must pass before merge):
+
+- **format**: `vendor/bin/pint --test` (fails on unformatted code; do not
+  auto-fix in CI).
+- **test**: `vendor/bin/pest` on the supported PHP version(s). Matrix across
+  PHP 8.2 and 8.3 minimum; add newer versions as they ship.
+
+A separate workflow at `.github/workflows/deploy-docs.yml` builds and deploys
+the `/website` Astro site to GitHub Pages on every push to `main`. Steps:
+checkout, setup Node, `npm ci` in `/website`, `npm run build`, upload the
+`dist/` artifact, deploy via the official `actions/deploy-pages` action.
+Permissions block: `pages: write`, `id-token: write`. The workflow must not
+run on PRs (build-only, no deploy) to avoid leaking previews to the live URL.
+
+Constraints:
+
+- CI MUST NOT spawn any real reviewer CLI (`claude`, `opencode`, etc.). Tests
+  run against the fake process runner only.
+- No secrets required. If a job ever needs one, that is a signal something
+  has drifted from the "no API calls" constraint.
+- Cache Composer dependencies between runs.
 
 ## Git Commit Conventions
 
