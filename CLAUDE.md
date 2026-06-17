@@ -111,7 +111,10 @@ flags for other agentic CLIs.
 
 ## Conventions
 
-- PHP 8.2+, strict types, PSR-12.
+- PHP 8.3+, strict types, PSR-12. Floor is 8.3 (PHP 8.2 is in security-only
+  mode as of late 2025 and EOL Dec 2026; not worth supporting for a brand-new
+  project). Use typed class constants, readonly classes, and other 8.3+
+  features freely.
 - Pest for tests. **TDD is the default**: write the failing test first, then the
   code to pass it, then refactor. New behavior without a preceding failing test
   is a smell; review-time question is "where's the red commit?"
@@ -196,8 +199,9 @@ against `main`. Required jobs (all must pass before merge):
 
 - **format**: `vendor/bin/pint --test` (fails on unformatted code; do not
   auto-fix in CI).
-- **test**: `vendor/bin/pest` on the supported PHP version(s). Matrix across
-  PHP 8.2 and 8.3 minimum; add newer versions as they ship.
+- **test**: `vendor/bin/pest` on the supported PHP versions. Matrix is
+  PHP **8.3, 8.4, and 8.5** (all three required; do not drop 8.3 until it
+  hits EOL). Add newer versions as they ship; drop oldest only when EOL.
 
 A separate workflow at `.github/workflows/deploy-docs.yml` builds and deploys
 the `/website` Astro site to GitHub Pages on every push to `main`. Steps:
