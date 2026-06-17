@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace LlmReviewPanel\Result;
 
+use InvalidArgumentException;
 use LlmReviewPanel\Config\ReviewerConfig;
 use LlmReviewPanel\Prompt\ReviewerOutput;
 
@@ -11,8 +12,12 @@ final class ResultParser
 {
     public function parse(ReviewerConfig $reviewer, string $stdout): ReviewerOutput
     {
-        $trimmed = trim($stdout);
-        $decoded = json_decode($trimmed, true);
+        if ($reviewer->resultPath !== null) {
+            $this->assertNoArrayIndexing($reviewer->resultPath);
+        }
+
+        $normalized = $this->stripFences(trim($stdout));
+        $decoded = json_decode($normalized, true);
         $isJson = json_last_error() === JSON_ERROR_NONE && is_array($decoded);
 
         if ($reviewer->resultPath !== null) {
@@ -28,7 +33,30 @@ final class ResultParser
             return new ReviewerOutput($reviewer->id, $extracted, unstructured: false);
         }
 
-        return new ReviewerOutput($reviewer->id, $stdout, unstructured: ! $isJson);
+        if ($isJson) {
+            return new ReviewerOutput($reviewer->id, $normalized, unstructured: false);
+        }
+
+        return new ReviewerOutput($reviewer->id, $stdout, unstructured: true);
+    }
+
+    private function stripFences(string $value): string
+    {
+        if (preg_match('/^```(?:[a-zA-Z0-9_+-]*)\n(.*)\n```$/s', $value, $matches) === 1) {
+            return trim($matches[1]);
+        }
+
+        return $value;
+    }
+
+    private function assertNoArrayIndexing(string $path): void
+    {
+        if (str_contains($path, '[') || str_contains($path, ']')) {
+            throw new InvalidArgumentException(
+                "result_path '{$path}' uses array indexing, which is not supported. ".
+                'Use a non-streaming output mode or set result_path: null.'
+            );
+        }
     }
 
     /**

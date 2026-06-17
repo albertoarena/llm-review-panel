@@ -65,3 +65,86 @@ it('tags as unstructured when the result_path key is missing', function (): void
 
     expect($output->unstructured)->toBeTrue();
 });
+
+it('strips ```json fences when result_path is null', function (): void {
+    $stdout = "```json\n".'{"summary":"hi","findings":[],"open_questions":[],"verdict":"ship"}'."\n```";
+
+    $output = $this->parser->parse(rev(null), $stdout);
+
+    expect($output->unstructured)->toBeFalse()
+        ->and($output->content)->toBe('{"summary":"hi","findings":[],"open_questions":[],"verdict":"ship"}');
+});
+
+it('strips bare ``` fences when result_path is null', function (): void {
+    $stdout = "```\n".'{"verdict":"ship"}'."\n```";
+
+    $output = $this->parser->parse(rev(null), $stdout);
+
+    expect($output->unstructured)->toBeFalse()
+        ->and($output->content)->toBe('{"verdict":"ship"}');
+});
+
+it('strips fences before extracting via result_path', function (): void {
+    $stdout = "```json\n".'{"result":"the review"}'."\n```";
+
+    $output = $this->parser->parse(rev('result'), $stdout);
+
+    expect($output->unstructured)->toBeFalse()
+        ->and($output->content)->toBe('the review');
+});
+
+it('demotes prose-wrapped JSON to unstructured without attempting repair', function (): void {
+    $stdout = 'Here is my review: {"verdict":"ship"} hope that helps!';
+
+    $output = $this->parser->parse(rev(null), $stdout);
+
+    expect($output->unstructured)->toBeTrue()
+        ->and($output->content)->toBe($stdout);
+});
+
+it('handles trailing whitespace and newlines', function (): void {
+    $stdout = "\n\n".'{"verdict":"ship"}'."\n\n  \n";
+
+    $output = $this->parser->parse(rev(null), $stdout);
+
+    expect($output->unstructured)->toBeFalse()
+        ->and($output->content)->toBe('{"verdict":"ship"}');
+});
+
+it('extracts deeply nested keys via dot-path', function (): void {
+    $stdout = '{"a":{"b":{"c":"deep value"}}}';
+
+    $output = $this->parser->parse(rev('a.b.c'), $stdout);
+
+    expect($output->unstructured)->toBeFalse()
+        ->and($output->content)->toBe('deep value');
+});
+
+it('tags as unstructured when an intermediate dot-path key is missing', function (): void {
+    $stdout = '{"a":{"x":"oops"}}';
+
+    $output = $this->parser->parse(rev('a.b.c'), $stdout);
+
+    expect($output->unstructured)->toBeTrue();
+});
+
+it('tags as unstructured when result_path resolves to a non-string', function (): void {
+    $stdout = '{"result":{"nested":"object"}}';
+
+    $output = $this->parser->parse(rev('result'), $stdout);
+
+    expect($output->unstructured)->toBeTrue();
+});
+
+it('rejects array indexing in dot-path with a clear error', function (): void {
+    $this->parser->parse(rev('choices[0].text'), '{"choices":[{"text":"x"}]}');
+})->throws(InvalidArgumentException::class, 'array indexing');
+
+it('preserves the raw stdout on the output when demoted to unstructured', function (): void {
+    $stdout = 'not json at all';
+
+    $output = $this->parser->parse(rev(null), $stdout);
+
+    expect($output->unstructured)->toBeTrue()
+        ->and($output->content)->toBe($stdout);
+});
