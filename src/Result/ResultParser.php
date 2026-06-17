@@ -7,6 +7,7 @@ namespace LlmReviewPanel\Result;
 use InvalidArgumentException;
 use LlmReviewPanel\Config\ReviewerConfig;
 use LlmReviewPanel\Prompt\ReviewerOutput;
+use LlmReviewPanel\Prompt\ReviewerStatus;
 
 final class ResultParser
 {
@@ -22,22 +23,27 @@ final class ResultParser
 
         if ($reviewer->resultPath !== null) {
             if (! $isJson) {
-                return new ReviewerOutput($reviewer->id, $stdout, unstructured: true);
+                return $this->unstructured($reviewer->id, $stdout);
             }
 
             $extracted = $this->dotPath($decoded, $reviewer->resultPath);
             if ($extracted === null) {
-                return new ReviewerOutput($reviewer->id, $stdout, unstructured: true);
+                return $this->unstructured($reviewer->id, $stdout);
             }
 
-            return new ReviewerOutput($reviewer->id, $extracted, unstructured: false);
+            return new ReviewerOutput($reviewer->id, $extracted, unstructured: false, status: ReviewerStatus::Ok);
         }
 
         if ($isJson) {
-            return new ReviewerOutput($reviewer->id, $normalized, unstructured: false);
+            return new ReviewerOutput($reviewer->id, $normalized, unstructured: false, status: ReviewerStatus::Ok);
         }
 
-        return new ReviewerOutput($reviewer->id, $stdout, unstructured: true);
+        return $this->unstructured($reviewer->id, $stdout);
+    }
+
+    private function unstructured(string $id, string $raw): ReviewerOutput
+    {
+        return new ReviewerOutput($id, $raw, unstructured: true, status: ReviewerStatus::Unstructured);
     }
 
     private function stripFences(string $value): string

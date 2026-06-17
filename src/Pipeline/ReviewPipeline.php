@@ -8,10 +8,12 @@ use LlmReviewPanel\Config\Config;
 use LlmReviewPanel\Config\ConfigException;
 use LlmReviewPanel\Config\ConfigLoader;
 use LlmReviewPanel\Config\ReviewerConfig;
+use LlmReviewPanel\Process\ProcessResult;
 use LlmReviewPanel\Process\ProcessRunner;
 use LlmReviewPanel\Process\ProcessSpec;
 use LlmReviewPanel\Prompt\CommandBuilder;
 use LlmReviewPanel\Prompt\PromptAssembler;
+use LlmReviewPanel\Prompt\ReviewerOutput;
 use LlmReviewPanel\Result\ResultParser;
 
 final class ReviewPipeline
@@ -45,19 +47,39 @@ final class ReviewPipeline
 
         $outputs = [];
         foreach ($config->enabledReviewers() as $reviewer) {
-            $result = $reviewResults[$reviewer->id];
-            $outputs[] = $this->parser->parse($reviewer, $result->stdout);
+            $outputs[] = $this->classify($reviewer, $reviewResults[$reviewer->id]);
         }
 
-        $synthesisPrompt = $this->assembler->assembleSynthesis($synthesisInstructions, $outputs);
-        $synthesizer = $this->findReviewer($config, $config->synthesizer->reviewerId);
-        $synthSpec = $this->buildSpec($synthesizer, $synthesisPrompt, self::SYNTHESIZER_ID);
-        $synthResults = $this->runner->runBatch([$synthSpec], 1);
+        $usable = array_values(array_filter(
+            $outputs,
+            static fn (ReviewerOutput $o): bool => $o->status->isUsableForSynthesis(),
+        ));
 
-        return new RunResult(
-            reviews: $outputs,
-            synthesis: $synthResults[self::SYNTHESIZER_ID]->stdout,
-        );
+        $synthesis = null;
+        if ($usable !== []) {
+            $synthesisPrompt = $this->assembler->assembleSynthesis($synthesisInstructions, $usable);
+            $synthesizer = $this->findReviewer($config, $config->synthesizer->reviewerId);
+            $synthSpec = $this->buildSpec($synthesizer, $synthesisPrompt, self::SYNTHESIZER_ID);
+            $synthResults = $this->runner->runBatch([$synthSpec], 1);
+            $synthesis = $synthResults[self::SYNTHESIZER_ID]->stdout;
+        }
+
+        return new RunResult(reviews: $outputs, synthesis: $synthesis);
+    }
+
+    private function classify(ReviewerConfig $reviewer, ProcessResult $result): ReviewerOutput
+    {
+        if ($result->timedOut) {
+            return ReviewerOutput::timeout($reviewer->id, $result->stderr);
+        }
+        if ($result->exitCode !== 0) {
+            return ReviewerOutput::nonzeroExit($reviewer->id, $result->exitCode, $result->stderr);
+        }
+        if (trim($result->stdout) === '') {
+            return ReviewerOutput::emptyStdout($reviewer->id, $result->stderr);
+        }
+
+        return $this->parser->parse($reviewer, $result->stdout);
     }
 
     /**

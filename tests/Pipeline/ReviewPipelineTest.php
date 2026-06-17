@@ -122,6 +122,67 @@ it('passes the assembled review prompt to each reviewer', function (): void {
         ->toContain('OUTPUT CONTRACT');
 });
 
+it('records a timeout for a reviewer without aborting the others', function (): void {
+    $env = setupRun();
+    $runner = new FakeProcessRunner();
+    $runner->script('claude', stdout: '{"result":"good"}');
+    $runner->script('opencode', stdout: '', timedOut: true);
+    $runner->script('gemini', stdout: 'prose review');
+    $runner->script('synthesizer', stdout: 'merged');
+
+    $result = (new ReviewPipeline($runner))->run($env['configPath'], $env['planPath']);
+
+    expect($result->reviews)->toHaveCount(3)
+        ->and($result->reviews[0]->status)->toBe(LlmReviewPanel\Prompt\ReviewerStatus::Ok)
+        ->and($result->reviews[1]->status)->toBe(LlmReviewPanel\Prompt\ReviewerStatus::Timeout)
+        ->and($result->reviews[2]->status)->toBe(LlmReviewPanel\Prompt\ReviewerStatus::Unstructured)
+        ->and($result->synthesis)->toBe('merged');
+});
+
+it('records a nonzero exit and excludes it from synthesis', function (): void {
+    $env = setupRun();
+    $runner = new FakeProcessRunner();
+    $runner->script('claude', stdout: '{"result":"good"}');
+    $runner->script('opencode', stdout: '', stderr: 'boom', exitCode: 1);
+    $runner->script('gemini', stdout: 'prose');
+    $runner->script('synthesizer', stdout: 'merged');
+
+    (new ReviewPipeline($runner))->run($env['configPath'], $env['planPath']);
+
+    $synthPrompt = $runner->invocations()[3]->args[1];
+    expect($synthPrompt)
+        ->toContain('[reviewer: claude, format: json]')
+        ->toContain('[reviewer: gemini, format: unstructured]')
+        ->not->toContain('[reviewer: opencode');
+});
+
+it('records empty stdout as a failure', function (): void {
+    $env = setupRun();
+    $runner = new FakeProcessRunner();
+    $runner->script('claude', stdout: '{"result":"x"}');
+    $runner->script('opencode', stdout: '   ', stderr: 'nothing useful');
+    $runner->script('gemini', stdout: 'prose');
+    $runner->script('synthesizer', stdout: 'merged');
+
+    $result = (new ReviewPipeline($runner))->run($env['configPath'], $env['planPath']);
+
+    expect($result->reviews[1]->status)->toBe(LlmReviewPanel\Prompt\ReviewerStatus::EmptyStdout);
+});
+
+it('skips synthesis entirely when no reviewer produced usable output', function (): void {
+    $env = setupRun();
+    $runner = new FakeProcessRunner();
+    $runner->script('claude', stdout: '', timedOut: true);
+    $runner->script('opencode', stdout: '', exitCode: 1);
+    $runner->script('gemini', stdout: '');
+
+    $result = (new ReviewPipeline($runner))->run($env['configPath'], $env['planPath']);
+
+    expect($result->synthesis)->toBeNull()
+        ->and($result->reviews)->toHaveCount(3)
+        ->and(array_filter($result->reviews, fn ($o) => $o->status->isUsableForSynthesis()))->toBe([]);
+});
+
 it('skips reviewers that are disabled', function (): void {
     $env = setupRun();
     $data = json_decode(file_get_contents($env['configPath']), true);

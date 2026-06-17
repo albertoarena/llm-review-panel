@@ -13,7 +13,7 @@ final readonly class RunResult
      */
     public function __construct(
         public array $reviews,
-        public string $synthesis,
+        public ?string $synthesis,
     ) {
     }
 }
