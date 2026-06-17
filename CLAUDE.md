@@ -112,7 +112,12 @@ flags for other agentic CLIs.
 ## Conventions
 
 - PHP 8.2+, strict types, PSR-12.
-- Pest for tests (the maintainer's preferred test framework). TDD where practical.
+- Pest for tests. **TDD is the default**: write the failing test first, then the
+  code to pass it, then refactor. New behavior without a preceding failing test
+  is a smell; review-time question is "where's the red commit?"
+- Laravel Pint for formatting (works fine outside Laravel; pulled in as a dev
+  dependency). Run `vendor/bin/pint` before committing. CI should fail on
+  unformatted code.
 - KISS and clean separation: config loading, prompt assembly, process running,
   result parsing, synthesis, and CLI/IO are distinct concerns. No god classes.
 - Process spawning isolated behind one class so it can be faked in tests (do NOT
