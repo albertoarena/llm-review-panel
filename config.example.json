@@ -1,0 +1,71 @@
+{
+  "reviewers": [
+    {
+      "id": "claude",
+      "enabled": true,
+      "command": "claude",
+      "args": ["-p", "{prompt}", "--output-format", "json", "--allowedTools", "Read"],
+      "prompt_via": "arg",
+      "model": null,
+      "result_path": "result",
+      "timeout": 300
+    },
+    {
+      "id": "opencode-ollama",
+      "enabled": true,
+      "command": "opencode",
+      "args": ["run", "-m", "{model}", "{prompt}"],
+      "prompt_via": "arg",
+      "model": "ollama/qwen2.5-coder:14b",
+      "result_path": null,
+      "timeout": 600
+    },
+    {
+      "id": "codex",
+      "enabled": false,
+      "command": "codex",
+      "args": ["exec", "--json", "--sandbox", "read-only", "{prompt}"],
+      "prompt_via": "arg",
+      "model": null,
+      "result_path": null,
+      "timeout": 300
+    },
+    {
+      "id": "gemini",
+      "enabled": false,
+      "command": "gemini",
+      "args": ["-m", "{model}", "-p", "{prompt}"],
+      "prompt_via": "arg",
+      "model": "gemini-2.5-pro",
+      "result_path": null,
+      "timeout": 300
+    },
+    {
+      "id": "aider-ollama",
+      "enabled": false,
+      "command": "aider",
+      "args": ["--model", "{model}", "--message", "{prompt}", "--no-auto-commit", "--yes", "--no-stream"],
+      "prompt_via": "arg",
+      "model": "ollama/deepseek-coder-v2",
+      "result_path": null,
+      "timeout": 600
+    },
+    {
+      "id": "qwen",
+      "enabled": false,
+      "command": "qwen",
+      "args": ["-p", "{prompt}", "--output-format", "json"],
+      "prompt_via": "arg",
+      "model": null,
+      "result_path": "response",
+      "timeout": 300
+    }
+  ],
+  "synthesizer": {
+    "reviewer_id": "claude",
+    "prompt_file": "config/synthesis.md"
+  },
+  "rubric_file": "config/rubric.md",
+  "output_dir": ".aireview/runs",
+  "max_parallel": 3
+}

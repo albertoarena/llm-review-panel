@@ -1,0 +1,13 @@
+# IDE
+.idea/
+.vscode/
+*.iml
+*.swp
+*.swo
+.DS_Store
+
+# Local docs scratch
+.docs/
+
+# Local config (real config; example is committed)
+config.json
