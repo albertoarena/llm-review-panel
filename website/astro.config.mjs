@@ -10,13 +10,9 @@ export default defineConfig({
       title: 'llm-review-panel',
       description:
         'A PHP CLI that runs the same review across multiple LLM command-line tools in parallel and synthesizes their outputs into one consolidated review.',
-      social: [
-        {
-          icon: 'github',
-          label: 'GitHub',
-          href: 'https://github.com/albertoarena/llm-review-panel',
-        },
-      ],
+      social: {
+        github: 'https://github.com/albertoarena/llm-review-panel',
+      },
       sidebar: [
         {
           label: 'Getting started',
