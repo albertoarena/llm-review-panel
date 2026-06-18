@@ -70,6 +70,30 @@ it('records failed reviewers in the manifest with reason and skips content files
         ->and($manifest['reviewers'][2]['failure_reason'])->toContain('auth error');
 });
 
+it('writes synthesis.json when the synthesis is JSON', function (): void {
+    $runDir = $this->persister->persist(
+        $this->prepared,
+        [new ReviewerOutput('claude', '{"x":1}', false, ReviewerStatus::Ok)],
+        '{"summary":"ok","findings":[],"verdict":"ship"}',
+        '2026-06-18T14-00-00',
+    );
+
+    expect(is_file($runDir.'/synthesis.json'))->toBeTrue()
+        ->and(is_file($runDir.'/synthesis.md'))->toBeFalse();
+});
+
+it('falls back to synthesis.md when the synthesis is not JSON', function (): void {
+    $runDir = $this->persister->persist(
+        $this->prepared,
+        [new ReviewerOutput('claude', '{"x":1}', false, ReviewerStatus::Ok)],
+        'a prose synthesis, not JSON',
+        '2026-06-18T14-00-01',
+    );
+
+    expect(is_file($runDir.'/synthesis.md'))->toBeTrue()
+        ->and(is_file($runDir.'/synthesis.json'))->toBeFalse();
+});
+
 it('records synthesis_written=false when synthesis is null', function (): void {
     $runDir = $this->persister->persist(
         $this->prepared,

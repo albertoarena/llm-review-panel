@@ -9,7 +9,6 @@ use LlmReviewPanel\Pipeline\PreparedRun;
 use LlmReviewPanel\Pipeline\ReviewPipeline;
 use LlmReviewPanel\Prompt\CommandBuilder;
 use LlmReviewPanel\Prompt\ReviewerOutput;
-use LlmReviewPanel\Prompt\ReviewerStatus;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -171,9 +170,7 @@ final class ReviewCommand extends Command
         $choices = ['continue', 'abort'];
         foreach ($outputs as $o) {
             $output->writeln(sprintf('  - %s [%s]', $o->reviewerId, $o->status->value));
-            if ($o->status === ReviewerStatus::Ok || $o->status === ReviewerStatus::Unstructured) {
-                $choices[] = "rerun:{$o->reviewerId}";
-            }
+            $choices[] = "rerun:{$o->reviewerId}";
         }
 
         return $questions->choice('What now?', $choices, 'continue');

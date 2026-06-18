@@ -12,6 +12,9 @@
 # Local config (real config; example is committed)
 config.json
 
+# Run artifacts (default output_dir)
+.aireview/
+
 # Composer
 /vendor/
 

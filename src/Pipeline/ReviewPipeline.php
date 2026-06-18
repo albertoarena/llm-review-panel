@@ -97,8 +97,13 @@ final class ReviewPipeline
         $synthesizer = $this->findReviewer($run->config, $run->config->synthesizer->reviewerId);
         $spec = $this->buildSpec($synthesizer, $prompt, self::SYNTHESIZER_ID);
         $results = $this->runner->runBatch([$spec], 1);
+        $result = $results[self::SYNTHESIZER_ID];
 
-        return $results[self::SYNTHESIZER_ID]->stdout;
+        if ($result->timedOut || $result->exitCode !== 0 || trim($result->stdout) === '') {
+            return null;
+        }
+
+        return $this->parser->parse($synthesizer, $result->stdout)->content;
     }
 
     public function run(string $configPath, string $planPath): RunResult

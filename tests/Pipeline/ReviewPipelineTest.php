@@ -70,6 +70,22 @@ it('passes the assembled review prompt to each reviewer', function (): void {
         ->toContain('OUTPUT CONTRACT');
 });
 
+it('extracts synthesis content via the synthesizer result_path', function (): void {
+    $env = setupRun();
+    $inner = '{"summary":"merged","verdict":"ship"}';
+    $envelope = json_encode(['result' => "```json\n{$inner}\n```"]);
+
+    $runner = new FakeProcessRunner();
+    $runner->script('claude', stdout: '{"result":"first review"}');
+    $runner->script('opencode', stdout: 'prose');
+    $runner->script('gemini', stdout: 'gem');
+    $runner->script('synthesizer', stdout: $envelope);
+
+    $result = (new ReviewPipeline($runner))->run($env['configPath'], $env['planPath']);
+
+    expect($result->synthesis)->toBe($inner);
+});
+
 it('records a timeout for a reviewer without aborting the others', function (): void {
     $env = setupRun();
     $runner = new FakeProcessRunner();

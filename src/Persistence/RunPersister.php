@@ -30,7 +30,7 @@ final class RunPersister
         }
 
         if ($synthesis !== null) {
-            $this->write($runDir.'/synthesis.md', $synthesis);
+            $this->write($runDir.'/'.$this->synthesisFilename($synthesis), $synthesis);
         }
 
         $manifest = $this->buildManifest($prepared->config, $outputs, $synthesis, $timestamp);
@@ -42,6 +42,14 @@ final class RunPersister
     public static function timestamp(): string
     {
         return date('Y-m-d\TH-i-s');
+    }
+
+    private function synthesisFilename(string $content): string
+    {
+        $decoded = json_decode(trim($content), true);
+        $isJson = json_last_error() === JSON_ERROR_NONE && is_array($decoded);
+
+        return $isJson ? 'synthesis.json' : 'synthesis.md';
     }
 
     private function writeReviewer(string $reviewsDir, ReviewerOutput $output): void

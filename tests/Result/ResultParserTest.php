@@ -140,6 +140,16 @@ it('rejects array indexing in dot-path with a clear error', function (): void {
     $this->parser->parse(rev('choices[0].text'), '{"choices":[{"text":"x"}]}');
 })->throws(InvalidArgumentException::class, 'array indexing');
 
+it('strips inner fences from content extracted via result_path', function (): void {
+    $inner = '{"summary":"hi","verdict":"ship"}';
+    $stdout = json_encode(['result' => "```json\n{$inner}\n```"]);
+
+    $output = $this->parser->parse(rev('result'), $stdout);
+
+    expect($output->unstructured)->toBeFalse()
+        ->and($output->content)->toBe($inner);
+});
+
 it('preserves the raw stdout on the output when demoted to unstructured', function (): void {
     $stdout = 'not json at all';
 

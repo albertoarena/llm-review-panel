@@ -31,7 +31,9 @@ final class ResultParser
                 return $this->unstructured($reviewer->id, $stdout);
             }
 
-            return new ReviewerOutput($reviewer->id, $extracted, unstructured: false, status: ReviewerStatus::Ok);
+            $clean = $this->stripFences(trim($extracted));
+
+            return new ReviewerOutput($reviewer->id, $clean, unstructured: false, status: ReviewerStatus::Ok);
         }
 
         if ($isJson) {
