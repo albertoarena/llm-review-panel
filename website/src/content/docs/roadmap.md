@@ -8,6 +8,13 @@ an issue if any of these matter to you.
 
 ## Likely
 
+- **Homebrew distribution.** Ship a single-file PHAR built with
+  [box-project/box](https://github.com/box-project/box), released on
+  every tag via GitHub Actions, then install via a tap:
+  `brew install albertoarena/tap/llm-review-panel`. The PHAR keeps PHP as
+  the only system dep; the tap formula declares it. Hold off until the
+  tool has been used for real for a couple of weeks so we don't lock 0.0.x
+  decisions into a package manager.
 - **Re-run synthesis only.** When you want to iterate on the synthesis
   prompt without re-paying for reviewer calls, replay an existing run
   directory's reviewer outputs through a new synthesis prompt.
