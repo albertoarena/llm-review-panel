@@ -1,0 +1,55 @@
+---
+title: Configuration basics
+description: A quick tour of config.json. Full schema lives in Reference.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+`config.json` controls everything: which reviewers run, how they're invoked,
+where to put the output. It lives at the repository root (or wherever you
+point `--config` at).
+
+## Minimum viable config
+
+```json
+{
+  "reviewers": [
+    {
+      "id": "claude",
+      "enabled": true,
+      "command": "claude",
+      "args": ["-p", "{prompt}", "--output-format", "json", "--allowedTools", "Read"],
+      "prompt_via": "arg",
+      "model": null,
+      "result_path": "result",
+      "timeout": 300,
+      "paid": false
+    }
+  ],
+  "synthesizer": {
+    "reviewer_id": "claude",
+    "prompt_file": "config/synthesis.md"
+  },
+  "rubric_file": "config/rubric.md",
+  "output_dir": ".aireview/runs",
+  "max_parallel": 3
+}
+```
+
+## What the fields mean
+
+- `reviewers[]` — each reviewer is a command template. `{prompt}` and `{model}` are substituted at run time.
+- `prompt_via` — `"arg"` to substitute into args, `"stdin"` to pipe in.
+- `result_path` — dot-path into a JSON stdout envelope. `null` for plain-text CLIs.
+- `paid` — drives a warning at checkpoint 1. Set it honestly; `false` for subscription/local, `true` for per-token.
+- `synthesizer.reviewer_id` — which reviewer synthesizes the final review. Must match an existing reviewer.
+- `rubric_file` / `synthesizer.prompt_file` / `output_dir` — paths are resolved **relative to the config file's directory**, not the current working directory.
+
+<Aside type="caution">
+At least one reviewer must be enabled or the loader will refuse the config.
+The synthesizer must reference one of the configured reviewers (it's reused
+for the synthesis call).
+</Aside>
+
+See the [full config reference](/llm-review-panel/reference/config/) for
+every field and every validation rule.

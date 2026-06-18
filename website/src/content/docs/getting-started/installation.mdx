@@ -1,0 +1,66 @@
+---
+title: Installation
+description: Install llm-review-panel via Composer and verify the CLI works.
+---
+
+import { Aside, Steps, Tabs, TabItem } from '@astrojs/starlight/components';
+
+## Requirements
+
+- **PHP 8.3+** (8.4 and 8.5 are tested in CI).
+- **Composer** for dependency management.
+- **At least one supported reviewer CLI** on `PATH` and authenticated. See [Reviewers](/llm-review-panel/reviewers/claude/) for setup recipes.
+
+<Aside type="note">
+The tool itself never makes HTTP calls to model APIs. It only spawns local
+processes. All authentication is handled by the underlying reviewer CLIs.
+</Aside>
+
+## Install
+
+<Steps>
+
+1. Clone the repository:
+
+   ```bash
+   git clone https://github.com/albertoarena/llm-review-panel.git
+   cd llm-review-panel
+   ```
+
+2. Install dependencies:
+
+   ```bash
+   composer install
+   ```
+
+3. Verify the CLI:
+
+   ```bash
+   bin/llm-review-panel list
+   ```
+
+   You should see the `review` command listed.
+
+</Steps>
+
+## Copy the example config
+
+```bash
+cp config.example.json config.json
+```
+
+Edit `config.json` to enable the reviewers you have installed. Only the
+reviewers with `"enabled": true` will run.
+
+## Sanity check with `--dry-run`
+
+```bash
+bin/llm-review-panel review path/to/plan.md --dry-run
+```
+
+This resolves every enabled reviewer's command, checks each binary is on
+`PATH`, and exits without spawning anything. Use this before every first run
+on a new machine.
+
+If any binary is missing, the output shows `NOT FOUND on PATH` and the exit
+code is non-zero.

@@ -213,10 +213,10 @@ recipes, supported tools) without a corresponding `/website` change should be
 sent back. The CI job that builds the site (see below) catches breakage but
 not staleness; reviewers check for staleness.
 
-Timing: the site is one of the **last phases** of work (see
-`docs/IMPLEMENTATION.md`). Wait until the tool actually runs end-to-end before
-investing in docs content. A site that documents a vapor CLI is worse than no
-site.
+The site exists at `/website` as of Phase 8. Develop locally with
+`cd website && npm install && npm run dev`. The deploy workflow at
+`.github/workflows/deploy-docs.yml` builds and publishes on every push to
+`main` via `actions/deploy-pages`.
 
 ## README badges
 

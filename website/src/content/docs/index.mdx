@@ -1,0 +1,57 @@
+---
+title: llm-review-panel
+description: A PHP CLI that orchestrates code/plan reviews across multiple LLM command-line tools and synthesizes their outputs into one consolidated review.
+template: splash
+hero:
+  tagline: One plan, several LLMs, one consolidated review. Locally, no API keys.
+  actions:
+    - text: Install
+      link: /llm-review-panel/getting-started/installation/
+      icon: right-arrow
+      variant: primary
+    - text: View on GitHub
+      link: https://github.com/albertoarena/llm-review-panel
+      icon: external
+---
+
+import { Card, CardGrid, LinkCard } from '@astrojs/starlight/components';
+
+## What it does
+
+You write a markdown plan (an implementation plan, a review request, an audit
+prompt). `llm-review-panel` sends that same plan to multiple LLM command-line
+tools running on your machine, captures each review independently, then asks
+one of them to synthesize the lot into a single consolidated review that
+tags findings as **consensus**, **contested**, or **singleton**.
+
+The point is to get past single-model bias. One LLM agreeing with itself is
+not a review. Three different model families agreeing is a signal.
+
+<CardGrid>
+  <Card title="Config-driven" icon="setting">
+    Add a new reviewer by editing `config.json`. No code changes, no
+    per-provider classes, no plugin system.
+  </Card>
+  <Card title="No API keys" icon="approve-check">
+    Reviewers are local CLIs you already have installed and authenticated
+    (Claude Code under your subscription, OpenCode against local Ollama,
+    Gemini CLI on its free tier, etc.).
+  </Card>
+  <Card title="Parallel" icon="rocket">
+    Reviewers run concurrently up to `max_parallel`. Wall-clock stays close
+    to the slowest single reviewer.
+  </Card>
+  <Card title="Human in the loop" icon="puzzle">
+    Three checkpoints: confirm the prompt, inspect raw reviews, accept the
+    synthesis. `--yes` skips them; `--dry-run` validates without spawning.
+  </Card>
+</CardGrid>
+
+## Next steps
+
+<CardGrid>
+  <LinkCard title="Install" href="/llm-review-panel/getting-started/installation/" />
+  <LinkCard title="Run your first review" href="/llm-review-panel/guides/first-review/" />
+  <LinkCard title="How synthesis works" href="/llm-review-panel/concepts/synthesis/" />
+  <LinkCard title="config.json reference" href="/llm-review-panel/reference/config/" />
+</CardGrid>

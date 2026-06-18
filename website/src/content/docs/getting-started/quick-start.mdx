@@ -1,0 +1,73 @@
+---
+title: Quick start
+description: Run a real review end-to-end with the default panel.
+---
+
+import { Aside, Steps } from '@astrojs/starlight/components';
+
+This walks through a real run with the default panel: Claude Code and
+OpenCode against a local Ollama model. Adjust to whatever reviewers you have
+enabled.
+
+<Steps>
+
+1. **Make sure the reviewers are reachable.**
+
+   ```bash
+   bin/llm-review-panel review docs/example-plan.md --dry-run
+   ```
+
+   Confirm both `claude` and `opencode` print `found on PATH`. Fix any
+   missing binaries before continuing.
+
+2. **Write a plan to review.**
+
+   Drop your plan into any markdown file. For example:
+
+   ```markdown
+   # Plan: extract auth middleware
+
+   Move the inline auth check from `src/Controller/*.php` into a shared
+   middleware. Wire it up via the kernel and add a smoke test.
+   ```
+
+3. **Run the review.**
+
+   ```bash
+   bin/llm-review-panel review path/to/plan.md
+   ```
+
+   You'll hit three checkpoints:
+
+   - **Checkpoint 1** confirms the assembled prompt and lists the enabled
+     reviewers (with a warning if any are paid).
+   - **Checkpoint 2** shows each raw review. Continue, re-run a single
+     reviewer by id, or abort.
+   - **Checkpoint 3** shows the consolidated synthesis. Accept and persist,
+     or abort.
+
+4. **Inspect the persisted run.**
+
+   On accept, every artifact lands under `.aireview/runs/<timestamp>/`:
+
+   ```
+   .aireview/runs/2026-06-17T14-32-08/
+   ├── prompt.md
+   ├── reviews/
+   │   ├── claude.json
+   │   ├── claude.stderr.log
+   │   ├── opencode.txt
+   │   └── opencode.stderr.log
+   ├── synthesis.md
+   └── manifest.json
+   ```
+
+   `manifest.json` carries timings, statuses, and a snapshot of the config
+   that produced this run.
+
+</Steps>
+
+<Aside type="tip">
+Pass `--yes` to skip all three checkpoints. Useful for scripted runs once
+you trust the panel composition.
+</Aside>
