@@ -21,6 +21,8 @@ final class ReviewCommand extends Command
 {
     private const PROMPT_PREVIEW_CHARS = 80;
 
+    private const STDERR_PREVIEW_LINES = 6;
+
     private ?QuestionProvider $questions = null;
 
     public function __construct(
@@ -169,11 +171,24 @@ final class ReviewCommand extends Command
         $output->writeln('--- CHECKPOINT 2: raw reviews ---');
         $choices = ['continue', 'abort'];
         foreach ($outputs as $o) {
-            $output->writeln(sprintf('  - %s [%s]', $o->reviewerId, $o->status->value));
+            $output->writeln(sprintf('  - %s [%s] (%dms)', $o->reviewerId, $o->status->value, $o->durationMs));
+            if (! $o->status->isUsableForSynthesis() && $o->stderr !== '') {
+                $this->printStderrPreview($o->stderr, $output);
+            }
             $choices[] = "rerun:{$o->reviewerId}";
         }
 
         return $questions->choice('What now?', $choices, 'continue');
+    }
+
+    private function printStderrPreview(string $stderr, OutputInterface $output): void
+    {
+        $clean = preg_replace('/\x1b\[[0-9;]*m/', '', rtrim($stderr)) ?? $stderr;
+        $lines = preg_split('/\r?\n/', $clean) ?: [];
+        $tail = array_slice($lines, -self::STDERR_PREVIEW_LINES);
+        foreach ($tail as $line) {
+            $output->writeln('      <comment>'.$line.'</comment>');
+        }
     }
 
     private function checkpoint3(string $synthesis, OutputInterface $output, QuestionProvider $questions): bool

@@ -131,6 +131,30 @@ it('allows re-running a failed reviewer at checkpoint 2', function (): void {
     expect($ids)->toBe(['claude', 'opencode', 'gemini', 'opencode', 'synthesizer']);
 });
 
+it('previews stderr at checkpoint 2 for failed reviewers', function (): void {
+    $runner = new FakeProcessRunner();
+    $runner->script('claude', stdout: '{"result":"ok"}');
+    $runner->script('opencode', stdout: '', stderr: "line A\nline B\nERROR: Model not found: ollama/foo\nDid you mean: ollama-cloud?\n", exitCode: 1);
+    $runner->script('gemini', stdout: 'prose');
+    $runner->script('synthesizer', stdout: 'final');
+
+    $questions = new ScriptedQuestionProvider([true, 'continue', true]);
+    $command = new ReviewCommand(new ReviewPipeline($runner));
+    $command->setQuestionProvider($questions);
+    $tester = new CommandTester($command);
+    $env = setupRun();
+
+    $tester->execute([
+        'plan' => $env['planPath'],
+        '--config' => $env['configPath'],
+    ]);
+
+    expect($tester->getDisplay())
+        ->toContain('opencode [nonzero_exit]')
+        ->toContain('ERROR: Model not found')
+        ->toContain('Did you mean: ollama-cloud?');
+});
+
 it('aborts at checkpoint 2', function (): void {
     $runner = new FakeProcessRunner();
     $runner->script('claude', stdout: '{"result":"ok"}');
