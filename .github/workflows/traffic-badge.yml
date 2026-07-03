@@ -1,0 +1,38 @@
+name: Traffic Badge
+
+on:
+  schedule:
+    - cron: '0 3 * * *'   # daily at 03:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: traffic-badge
+  cancel-in-progress: false
+
+jobs:
+  update-badge:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Views badge
+        uses: albertoarena/github-traffic-badge@v1
+        with:
+          token: ${{ secrets.TRAFFIC_TOKEN }}
+          metric: views
+          label: 'Repo views'
+          color: blue
+          abbreviated: true
+          output: badge-views.svg
+          branch: traffic-data
+      - name: Clones badge
+        uses: albertoarena/github-traffic-badge@v1
+        with:
+          token: ${{ secrets.TRAFFIC_TOKEN }}
+          metric: clones
+          label: 'Repo clones'
+          color: green
+          abbreviated: true
+          output: badge-clones.svg
+          branch: traffic-data
