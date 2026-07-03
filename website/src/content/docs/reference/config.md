@@ -62,3 +62,9 @@ digits is treated as an index and rejected.
 
 `reviewer_id` must match a configured reviewer. The same process-running
 machinery is reused; only the prompt differs.
+
+The synthesizer may be a **disabled** reviewer. A disabled reviewer is not a
+panel voice but can still synthesize, giving you a "neutral arbiter": a model
+that consolidates the reviews without also judging its own review. `--dry-run`
+PATH-checks the synthesizer even when it is disabled, and checkpoint 1 names it
+(flagging it when it is an out-of-panel arbiter).

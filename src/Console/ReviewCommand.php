@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace LlmReviewPanel\Console;
 
+use LlmReviewPanel\Config\ReviewerConfig;
 use LlmReviewPanel\Persistence\RunPersister;
 use LlmReviewPanel\Pipeline\PreparedRun;
 use LlmReviewPanel\Pipeline\ReviewPipeline;
@@ -126,21 +127,38 @@ final class ReviewCommand extends Command
         $output->writeln('');
 
         $missing = 0;
-        foreach ($prepared->config->enabledReviewers() as $reviewer) {
-            $args = $this->builder->build($reviewer, $this->elide($prepared->reviewPrompt));
-            $line = $reviewer->id.': '.$reviewer->command.' '.implode(' ', array_map(
-                static fn (string $a): string => str_contains($a, ' ') ? '"'.$a.'"' : $a,
-                $args,
-            ));
-            $found = $this->locator->exists($reviewer->command);
-            $status = $found ? '<info>found on PATH</info>' : '<error>NOT FOUND on PATH</error>';
-            if (! $found) {
-                $missing++;
-            }
-            $output->writeln("[{$status}] {$line}");
+        $enabled = $prepared->config->enabledReviewers();
+        foreach ($enabled as $reviewer) {
+            $missing += $this->reportResolvedCommand($reviewer, $prepared, $output);
+        }
+
+        // A synthesizer that is not itself in the panel (a disabled "neutral
+        // arbiter") is never covered by the loop above, so validate it here too.
+        $synthesizer = $prepared->config->synthesizerReviewer();
+        $enabledIds = array_map(static fn ($r): string => $r->id, $enabled);
+        if ($synthesizer !== null && ! in_array($synthesizer->id, $enabledIds, true)) {
+            $missing += $this->reportResolvedCommand($synthesizer, $prepared, $output, ' (synthesizer)');
         }
 
         return $missing === 0 ? Command::SUCCESS : Command::FAILURE;
+    }
+
+    private function reportResolvedCommand(
+        ReviewerConfig $reviewer,
+        PreparedRun $prepared,
+        OutputInterface $output,
+        string $suffix = '',
+    ): int {
+        $args = $this->builder->build($reviewer, $this->elide($prepared->reviewPrompt));
+        $line = $reviewer->id.$suffix.': '.$reviewer->command.' '.implode(' ', array_map(
+            static fn (string $a): string => str_contains($a, ' ') ? '"'.$a.'"' : $a,
+            $args,
+        ));
+        $found = $this->locator->exists($reviewer->command);
+        $status = $found ? '<info>found on PATH</info>' : '<error>NOT FOUND on PATH</error>';
+        $output->writeln("[{$status}] {$line}");
+
+        return $found ? 0 : 1;
     }
 
     private function checkpoint1(PreparedRun $prepared, OutputInterface $output, QuestionProvider $questions): bool
@@ -155,6 +173,12 @@ final class ReviewCommand extends Command
         $paidCount = count(array_filter($reviewers, static fn ($r) => $r->paid));
         if ($paidCount > 0) {
             $output->writeln("<comment>Warning: {$paidCount} paid reviewer(s) enabled. Each run will be billed.</comment>");
+        }
+
+        $synthesizer = $prepared->config->synthesizerReviewer();
+        if ($synthesizer !== null) {
+            $arbiter = $synthesizer->enabled ? '' : ' <comment>(neutral arbiter, not in panel)</comment>';
+            $output->writeln("Synthesizer: {$synthesizer->id}{$arbiter}");
         }
 
         $output->writeln('');

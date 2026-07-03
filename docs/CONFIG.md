@@ -107,8 +107,21 @@ Higher timeout because local inference can be slow.
   }
 }
 ```
-`reviewer_id` must match an existing (and ideally enabled) reviewer id. The same
-process-running machinery is reused; only the prompt differs.
+`reviewer_id` must match an existing reviewer id. The same process-running
+machinery is reused; only the prompt differs.
+
+The synthesizer reviewer may be **disabled**. A disabled reviewer is not a panel
+voice, but is still available to synthesize. This is the "neutral arbiter"
+pattern: point `reviewer_id` at a strong model that does not otherwise sit in the
+panel, so it consolidates the reviews without also judging its own review or
+having its perspective counted twice. If the synthesizer is one of your enabled
+reviewers it works too; just be aware it will be arbitrating a set that includes
+its own output.
+
+`--dry-run` validates the synthesizer's `command` is on `PATH` even when the
+synthesizer is disabled, so a neutral arbiter cannot silently fail at synthesis
+time. Checkpoint 1 names the synthesizer and flags it when it is an out-of-panel
+arbiter.
 
 ## Supported reviewers (verified June 2026)
 

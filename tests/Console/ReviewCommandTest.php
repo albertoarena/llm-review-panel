@@ -266,3 +266,81 @@ it('fails --dry-run when a reviewer command is not on PATH', function (): void {
     expect($exit)->not->toBe(0)
         ->and($tester->getDisplay())->toContain('NOT FOUND');
 });
+
+it('PATH-checks a disabled synthesizer on --dry-run', function (): void {
+    $env = setupRun();
+    $data = json_decode(file_get_contents($env['configPath']), true);
+    foreach ([0, 1, 2] as $i) {
+        $data['reviewers'][$i]['command'] = 'printf';
+    }
+    $data['reviewers'][] = [
+        'id' => 'arbiter',
+        'enabled' => false,
+        'command' => 'no-such-binary-xyz',
+        'args' => ['-p', '{prompt}'],
+        'prompt_via' => 'arg',
+        'model' => null,
+        'result_path' => null,
+        'timeout' => 300,
+    ];
+    $data['synthesizer']['reviewer_id'] = 'arbiter';
+    file_put_contents($env['configPath'], json_encode($data));
+
+    $command = new ReviewCommand(new ReviewPipeline(new FakeProcessRunner()));
+    $tester = new CommandTester($command);
+
+    $exit = $tester->execute([
+        'plan' => $env['planPath'],
+        '--config' => $env['configPath'],
+        '--dry-run' => true,
+    ]);
+
+    expect($exit)->not->toBe(0)
+        ->and($tester->getDisplay())
+        ->toContain('arbiter')
+        ->toContain('synthesizer')
+        ->toContain('NOT FOUND');
+});
+
+it('does not list the synthesizer twice when it is an enabled reviewer', function (): void {
+    $env = setupRun();
+    $data = json_decode(file_get_contents($env['configPath']), true);
+    foreach ([0, 1, 2] as $i) {
+        $data['reviewers'][$i]['command'] = 'printf';
+    }
+    $data['synthesizer']['reviewer_id'] = 'claude';
+    file_put_contents($env['configPath'], json_encode($data));
+
+    $command = new ReviewCommand(new ReviewPipeline(new FakeProcessRunner()));
+    $tester = new CommandTester($command);
+
+    $exit = $tester->execute([
+        'plan' => $env['planPath'],
+        '--config' => $env['configPath'],
+        '--dry-run' => true,
+    ]);
+
+    expect($exit)->toBe(0)
+        ->and(substr_count($tester->getDisplay(), 'printf'))->toBe(3);
+});
+
+it('names the synthesizer at checkpoint 1', function (): void {
+    $runner = new FakeProcessRunner();
+    $runner->script('claude', stdout: '{"result":"ok"}');
+    $runner->script('opencode', stdout: 'prose');
+    $runner->script('gemini', stdout: 'gem');
+    $runner->script('synthesizer', stdout: 'final');
+
+    $questions = new ScriptedQuestionProvider([true, 'continue', true]);
+    $command = new ReviewCommand(new ReviewPipeline($runner));
+    $command->setQuestionProvider($questions);
+    $tester = new CommandTester($command);
+    $env = setupRun();
+
+    $tester->execute([
+        'plan' => $env['planPath'],
+        '--config' => $env['configPath'],
+    ]);
+
+    expect($tester->getDisplay())->toContain('Synthesizer: claude');
+});

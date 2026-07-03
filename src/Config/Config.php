@@ -28,4 +28,19 @@ final readonly class Config
             static fn (ReviewerConfig $r): bool => $r->enabled,
         ));
     }
+
+    /**
+     * The reviewer that synthesizes. May be disabled: a synthesizer that is not
+     * a panel voice acts as a neutral arbiter over the other reviews.
+     */
+    public function synthesizerReviewer(): ?ReviewerConfig
+    {
+        foreach ($this->reviewers as $reviewer) {
+            if ($reviewer->id === $this->synthesizer->reviewerId) {
+                return $reviewer;
+            }
+        }
+
+        return null;
+    }
 }

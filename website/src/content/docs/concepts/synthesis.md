@@ -4,9 +4,11 @@ description: From N independent reviews to one consolidated output, tagged by ag
 ---
 
 After every enabled reviewer has produced an output, the synthesizer reads
-them all and emits a single consolidated review. The synthesizer is just
-one of your configured reviewers (pointed at by `synthesizer.reviewer_id`),
-re-invoked with a different prompt.
+them all and emits a single consolidated review. The synthesizer is one of
+your configured reviewers (pointed at by `synthesizer.reviewer_id`),
+re-invoked with a different prompt. It can be a disabled reviewer, in which
+case it acts as a neutral arbiter that consolidates the panel without being
+one of its voices (see the [config reference](/reference/config/)).
 
 ## What the synthesizer does
 
