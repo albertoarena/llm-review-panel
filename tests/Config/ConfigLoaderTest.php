@@ -28,6 +28,26 @@ it('loads a valid config', function (): void {
         ->and($config->maxParallel)->toBe(3);
 });
 
+it('defaults poll_interval_ms to 25 when absent', function (): void {
+    $config = $this->loader->load(writeTempConfig(validConfigData()));
+
+    expect($config->pollIntervalMs)->toBe(25);
+});
+
+it('reads poll_interval_ms when present', function (): void {
+    $config = $this->loader->load(writeTempConfig(validConfigData(['poll_interval_ms' => 50])));
+
+    expect($config->pollIntervalMs)->toBe(50);
+});
+
+it('rejects a non-positive poll_interval_ms', function (): void {
+    $this->loader->load(writeTempConfig(validConfigData(['poll_interval_ms' => 0])));
+})->throws(ConfigException::class, 'poll_interval_ms');
+
+it('rejects a non-integer poll_interval_ms', function (): void {
+    $this->loader->load(writeTempConfig(validConfigData(['poll_interval_ms' => 'fast'])));
+})->throws(ConfigException::class, 'poll_interval_ms');
+
 it('resolves rubric, synthesis and output paths relative to the config file directory', function (): void {
     $dir = sys_get_temp_dir().'/llm-review-panel-test-'.bin2hex(random_bytes(6));
     $path = writeTempConfig(validConfigData(), $dir);

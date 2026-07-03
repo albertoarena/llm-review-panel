@@ -12,6 +12,9 @@ final class FakeProcessRunner implements ProcessRunner
     /** @var list<ProcessSpec> */
     private array $invocations = [];
 
+    /** @var list<int> Poll interval (microseconds) received per runBatch call. */
+    public array $pollIntervalsUs = [];
+
     public function script(
         string $id,
         string $stdout = '',
@@ -28,8 +31,9 @@ final class FakeProcessRunner implements ProcessRunner
         );
     }
 
-    public function runBatch(array $specs, int $maxParallel): array
+    public function runBatch(array $specs, int $maxParallel, int $pollIntervalUs = 25_000): array
     {
+        $this->pollIntervalsUs[] = $pollIntervalUs;
         $results = [];
         foreach ($specs as $spec) {
             $this->invocations[] = $spec;

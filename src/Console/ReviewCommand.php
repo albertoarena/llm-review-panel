@@ -47,7 +47,8 @@ final class ReviewCommand extends Command
             ->addArgument('plan', InputArgument::REQUIRED, 'Path to the markdown plan to review')
             ->addOption('config', 'c', InputOption::VALUE_REQUIRED, 'Path to config.json', 'config.json')
             ->addOption('yes', 'y', InputOption::VALUE_NONE, 'Skip all three checkpoints')
-            ->addOption('dry-run', null, InputOption::VALUE_NONE, 'Resolve commands and exit without spawning');
+            ->addOption('dry-run', null, InputOption::VALUE_NONE, 'Resolve commands and exit without spawning')
+            ->addOption('poll-interval', null, InputOption::VALUE_REQUIRED, 'Process poll interval in milliseconds (overrides poll_interval_ms)');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -56,6 +57,14 @@ final class ReviewCommand extends Command
         $configPath = (string) $input->getOption('config');
         $yes = (bool) $input->getOption('yes');
         $dryRun = (bool) $input->getOption('dry-run');
+
+        $pollInterval = $input->getOption('poll-interval');
+        if ($pollInterval !== null && (! ctype_digit((string) $pollInterval) || (int) $pollInterval < 1)) {
+            $output->writeln('<error>--poll-interval must be a positive integer (milliseconds).</error>');
+
+            return Command::INVALID;
+        }
+        $pollMs = $pollInterval !== null ? (int) $pollInterval : null;
 
         $prepared = $this->pipeline->prepare($configPath, $planPath);
 
@@ -75,7 +84,7 @@ final class ReviewCommand extends Command
             return Command::SUCCESS;
         }
 
-        $outputs = $this->pipeline->runReviewers($prepared);
+        $outputs = $this->pipeline->runReviewers($prepared, $pollMs);
 
         if (! $yes) {
             while (true) {
@@ -91,7 +100,7 @@ final class ReviewCommand extends Command
                 if ($choice === 'rerun:failed') {
                     foreach ($this->failedIds($outputs) as $id) {
                         $output->writeln("Re-running {$id}...");
-                        $outputs = $this->replaceOutput($outputs, $this->pipeline->rerunReviewer($prepared, $id));
+                        $outputs = $this->replaceOutput($outputs, $this->pipeline->rerunReviewer($prepared, $id, $pollMs));
                     }
 
                     continue;
@@ -99,13 +108,13 @@ final class ReviewCommand extends Command
                 if (str_starts_with($choice, 'rerun:')) {
                     $id = substr($choice, 6);
                     $output->writeln("Re-running {$id}...");
-                    $new = $this->pipeline->rerunReviewer($prepared, $id);
+                    $new = $this->pipeline->rerunReviewer($prepared, $id, $pollMs);
                     $outputs = $this->replaceOutput($outputs, $new);
                 }
             }
         }
 
-        $synthesis = $this->pipeline->runSynthesis($prepared, $outputs);
+        $synthesis = $this->pipeline->runSynthesis($prepared, $outputs, $pollMs);
 
         if ($synthesis === null) {
             $output->writeln('<error>No reviewer produced usable output; synthesis skipped.</error>');

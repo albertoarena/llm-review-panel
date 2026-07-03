@@ -8,7 +8,7 @@ import { Aside } from '@astrojs/starlight/components';
 ## Synopsis
 
 ```bash
-bin/llm-review-panel review <plan.md> [--config <path>] [--yes] [--dry-run]
+bin/llm-review-panel review <plan.md> [--config <path>] [--yes] [--dry-run] [--poll-interval <ms>]
 ```
 
 ## Arguments
@@ -24,6 +24,7 @@ bin/llm-review-panel review <plan.md> [--config <path>] [--yes] [--dry-run]
 | `--config, -c` | `config.json`  | Path to the `config.json` to load.                                          |
 | `--yes, -y`    | off            | Skip all three checkpoints.                                                 |
 | `--dry-run`    | off            | Resolve every enabled reviewer's command, check each binary against `PATH`, and exit. No processes spawned. |
+| `--poll-interval` | `poll_interval_ms` (25) | Process poll interval in milliseconds. Overrides `poll_interval_ms` from config for this run. Must be a positive integer. |
 
 ## Exit codes
 

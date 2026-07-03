@@ -14,6 +14,15 @@ final class ConfigLoader
         'rubric_file',
         'output_dir',
         'max_parallel',
+        'poll_interval_ms',
+    ];
+
+    private const TOP_LEVEL_REQUIRED = [
+        'reviewers',
+        'synthesizer',
+        'rubric_file',
+        'output_dir',
+        'max_parallel',
     ];
 
     private const REVIEWER_FIELDS = [
@@ -65,7 +74,7 @@ final class ConfigLoader
         $baseDir = dirname((string) realpath($path));
 
         $this->assertKnownKeys($data, self::TOP_LEVEL_FIELDS, 'config');
-        $this->assertRequiredKeys($data, self::TOP_LEVEL_FIELDS, 'config');
+        $this->assertRequiredKeys($data, self::TOP_LEVEL_REQUIRED, 'config');
 
         $reviewers = $this->parseReviewers($data['reviewers']);
         $synthesizer = $this->parseSynthesizer($data['synthesizer'], $baseDir, $reviewers);
@@ -80,12 +89,18 @@ final class ConfigLoader
             throw new ConfigException('max_parallel must be a positive integer');
         }
 
+        $pollIntervalMs = $data['poll_interval_ms'] ?? 25;
+        if (! is_int($pollIntervalMs) || $pollIntervalMs < 1) {
+            throw new ConfigException('poll_interval_ms must be a positive integer');
+        }
+
         return new Config(
             reviewers: $reviewers,
             synthesizer: $synthesizer,
             rubricFile: $this->resolvePath($data['rubric_file'], $baseDir),
             outputDir: $this->resolvePath($data['output_dir'], $baseDir),
             maxParallel: $data['max_parallel'],
+            pollIntervalMs: $pollIntervalMs,
         );
     }
 

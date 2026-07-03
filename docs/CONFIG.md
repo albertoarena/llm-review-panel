@@ -12,6 +12,7 @@ edit. `config.json` is gitignored; `config.example.json` is committed.
 | `rubric_file`  | string | Path to the markdown rubric injected into every review prompt.   |
 | `output_dir`   | string | Where run artifacts are written. Default `.aireview/runs`.       |
 | `max_parallel` | int    | Max reviewers running concurrently. Default 3.                   |
+| `poll_interval_ms` | int | Optional. How often the runner polls spawned processes for completion, in ms. Default 25. `--poll-interval` overrides it per run. |
 
 ## Reviewer entry
 

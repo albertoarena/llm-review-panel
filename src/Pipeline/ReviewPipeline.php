@@ -57,10 +57,10 @@ final class ReviewPipeline
     /**
      * @return list<ReviewerOutput>
      */
-    public function runReviewers(PreparedRun $run): array
+    public function runReviewers(PreparedRun $run, ?int $pollIntervalMs = null): array
     {
         $specs = $this->reviewerSpecs($run);
-        $results = $this->runner->runBatch($specs, $run->config->maxParallel);
+        $results = $this->runner->runBatch($specs, $run->config->maxParallel, $this->pollUs($run, $pollIntervalMs));
 
         $outputs = [];
         foreach ($run->config->enabledReviewers() as $reviewer) {
@@ -70,11 +70,11 @@ final class ReviewPipeline
         return $outputs;
     }
 
-    public function rerunReviewer(PreparedRun $run, string $reviewerId): ReviewerOutput
+    public function rerunReviewer(PreparedRun $run, string $reviewerId, ?int $pollIntervalMs = null): ReviewerOutput
     {
         $reviewer = $this->findEnabledReviewer($run->config, $reviewerId);
         $spec = $this->buildSpec($reviewer, $run->reviewPrompt, $reviewer->id);
-        $results = $this->runner->runBatch([$spec], 1);
+        $results = $this->runner->runBatch([$spec], 1, $this->pollUs($run, $pollIntervalMs));
 
         return $this->classify($reviewer, $results[$reviewer->id]);
     }
@@ -82,7 +82,7 @@ final class ReviewPipeline
     /**
      * @param  list<ReviewerOutput>  $outputs
      */
-    public function runSynthesis(PreparedRun $run, array $outputs): ?string
+    public function runSynthesis(PreparedRun $run, array $outputs, ?int $pollIntervalMs = null): ?string
     {
         $usable = array_values(array_filter(
             $outputs,
@@ -96,7 +96,7 @@ final class ReviewPipeline
         $prompt = $this->assembler->assembleSynthesis($run->synthesisInstructions, $usable);
         $synthesizer = $this->findReviewer($run->config, $run->config->synthesizer->reviewerId);
         $spec = $this->buildSpec($synthesizer, $prompt, self::SYNTHESIZER_ID);
-        $results = $this->runner->runBatch([$spec], 1);
+        $results = $this->runner->runBatch([$spec], 1, $this->pollUs($run, $pollIntervalMs));
         $result = $results[self::SYNTHESIZER_ID];
 
         if ($result->timedOut || $result->exitCode !== 0 || trim($result->stdout) === '') {
@@ -104,6 +104,11 @@ final class ReviewPipeline
         }
 
         return $this->parser->parse($synthesizer, $result->stdout)->content;
+    }
+
+    private function pollUs(PreparedRun $run, ?int $overrideMs): int
+    {
+        return ($overrideMs ?? $run->config->pollIntervalMs) * 1000;
     }
 
     public function run(string $configPath, string $planPath): RunResult

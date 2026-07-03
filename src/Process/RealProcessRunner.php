@@ -12,8 +12,9 @@ final class RealProcessRunner implements ProcessRunner
 {
     private const POLL_INTERVAL_US = 25_000;
 
-    public function runBatch(array $specs, int $maxParallel): array
+    public function runBatch(array $specs, int $maxParallel, int $pollIntervalUs = self::POLL_INTERVAL_US): array
     {
+        $pollIntervalUs = max(1, $pollIntervalUs);
         $maxParallel = max(1, $maxParallel);
         $queue = $specs;
         /** @var array<string, array{spec: ProcessSpec, process: Process, startedAt: float}> $running */
@@ -35,7 +36,7 @@ final class RealProcessRunner implements ProcessRunner
                 continue;
             }
 
-            usleep(self::POLL_INTERVAL_US);
+            usleep($pollIntervalUs);
 
             foreach ($running as $id => $entry) {
                 $process = $entry['process'];

@@ -25,7 +25,7 @@ spawn real LLM processes in the test suite; inject the fake runner.
 ## Flow
 
 ```
-llm-review-panel review <plan.md> [--config path] [--yes] [--dry-run]
+llm-review-panel review <plan.md> [--config path] [--yes] [--dry-run] [--poll-interval ms]
   1. Load config.json + rubric file. Assemble review prompt (rubric + plan).
   2. CHECKPOINT 1: print assembled prompt + list of enabled reviewers.
      Prompt user: continue / abort. (--yes skips all checkpoints.)

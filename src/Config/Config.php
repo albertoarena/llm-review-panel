@@ -15,6 +15,7 @@ final readonly class Config
         public string $rubricFile,
         public string $outputDir,
         public int $maxParallel,
+        public int $pollIntervalMs = 25,
     ) {
     }
 

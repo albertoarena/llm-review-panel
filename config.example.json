@@ -73,5 +73,6 @@
   },
   "rubric_file": "config/rubric.md",
   "output_dir": ".aireview/runs",
-  "max_parallel": 3
+  "max_parallel": 3,
+  "poll_interval_ms": 25
 }

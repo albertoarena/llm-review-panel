@@ -42,6 +42,64 @@ it('runs end-to-end with --yes and prints the synthesis', function (): void {
         ->and($tester->getDisplay())->toContain('FINAL_SYNTHESIS_OUTPUT');
 });
 
+it('defaults the reviewer poll interval to 25ms', function (): void {
+    $runner = new FakeProcessRunner();
+    $runner->script('claude', stdout: '{"result":"ok"}');
+    $runner->script('opencode', stdout: 'prose');
+    $runner->script('gemini', stdout: 'gem');
+    $runner->script('synthesizer', stdout: 'final');
+
+    $env = setupRun();
+    $command = new ReviewCommand(new ReviewPipeline($runner));
+    $tester = new CommandTester($command);
+    $tester->execute(['plan' => $env['planPath'], '--config' => $env['configPath'], '--yes' => true]);
+
+    expect($runner->pollIntervalsUs[0])->toBe(25_000);
+});
+
+it('uses poll_interval_ms from config for the reviewer batch', function (): void {
+    $env = setupRun();
+    $data = json_decode(file_get_contents($env['configPath']), true);
+    $data['poll_interval_ms'] = 50;
+    file_put_contents($env['configPath'], json_encode($data));
+
+    $runner = new FakeProcessRunner();
+    $runner->script('claude', stdout: '{"result":"ok"}');
+    $runner->script('opencode', stdout: 'prose');
+    $runner->script('gemini', stdout: 'gem');
+    $runner->script('synthesizer', stdout: 'final');
+
+    $command = new ReviewCommand(new ReviewPipeline($runner));
+    $tester = new CommandTester($command);
+    $tester->execute(['plan' => $env['planPath'], '--config' => $env['configPath'], '--yes' => true]);
+
+    expect($runner->pollIntervalsUs[0])->toBe(50_000);
+});
+
+it('lets --poll-interval override the config value', function (): void {
+    $env = setupRun();
+    $data = json_decode(file_get_contents($env['configPath']), true);
+    $data['poll_interval_ms'] = 50;
+    file_put_contents($env['configPath'], json_encode($data));
+
+    $runner = new FakeProcessRunner();
+    $runner->script('claude', stdout: '{"result":"ok"}');
+    $runner->script('opencode', stdout: 'prose');
+    $runner->script('gemini', stdout: 'gem');
+    $runner->script('synthesizer', stdout: 'final');
+
+    $command = new ReviewCommand(new ReviewPipeline($runner));
+    $tester = new CommandTester($command);
+    $tester->execute([
+        'plan' => $env['planPath'],
+        '--config' => $env['configPath'],
+        '--poll-interval' => '200',
+        '--yes' => true,
+    ]);
+
+    expect($runner->pollIntervalsUs[0])->toBe(200_000);
+});
+
 it('aborts at checkpoint 1 when user declines', function (): void {
     $runner = new FakeProcessRunner();
     $questions = new ScriptedQuestionProvider([false]);
