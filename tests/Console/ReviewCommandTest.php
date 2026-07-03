@@ -131,6 +131,29 @@ it('allows re-running a failed reviewer at checkpoint 2', function (): void {
     expect($ids)->toBe(['claude', 'opencode', 'gemini', 'opencode', 'synthesizer']);
 });
 
+it('re-runs all failed reviewers at checkpoint 2 in one step', function (): void {
+    $runner = new FakeProcessRunner();
+    $runner->script('claude', stdout: '{"result":"good"}');
+    $runner->script('opencode', stdout: '', stderr: 'boom', exitCode: 1);
+    $runner->script('gemini', stdout: '');
+    $runner->script('synthesizer', stdout: 'final');
+
+    $questions = new ScriptedQuestionProvider([true, 'rerun:failed', 'continue', true]);
+    $command = new ReviewCommand(new ReviewPipeline($runner));
+    $command->setQuestionProvider($questions);
+    $tester = new CommandTester($command);
+    $env = setupRun();
+
+    $exit = $tester->execute([
+        'plan' => $env['planPath'],
+        '--config' => $env['configPath'],
+    ]);
+
+    expect($exit)->toBe(0);
+    $ids = array_map(fn ($spec) => $spec->id, $runner->invocations());
+    expect($ids)->toBe(['claude', 'opencode', 'gemini', 'opencode', 'gemini', 'synthesizer']);
+});
+
 it('previews stderr at checkpoint 2 for failed reviewers', function (): void {
     $runner = new FakeProcessRunner();
     $runner->script('claude', stdout: '{"result":"ok"}');

@@ -34,7 +34,7 @@ llm-review-panel review <plan.md> [--config path] [--yes] [--dry-run]
   3. Fan out: spawn each enabled reviewer in parallel (respect max_parallel).
      Each reviewer's stdout is captured, result text extracted per result_path.
   4. CHECKPOINT 2: render side-by-side summary of raw reviews.
-     Prompt user: continue / re-run a specific reviewer / abort.
+     Prompt user: continue / re-run a specific reviewer / re-run all failed / abort.
   5. Synthesis: spawn the configured synthesizer reviewer with all N reviews as
      input + the synthesis prompt. Tagging of findings as
      consensus/contested/singleton is the synthesizer model's job (done via the
@@ -46,7 +46,9 @@ llm-review-panel review <plan.md> [--config path] [--yes] [--dry-run]
 
 Checkpoints are interactive by default; only `--yes` skips them. Checkpoint 2's
 "re-run reviewer <id>" replaces that one result and leaves the others intact; it
-does not re-run everything.
+does not re-run everything. When one or more reviewers failed (timeout,
+nonzero_exit, empty_stdout), checkpoint 2 also offers `rerun:failed`, which
+re-runs every failed reviewer in one step and leaves the successful ones intact.
 
 `--dry-run` is the supported way to validate config and CLI availability. It must
 resolve every placeholder and report any reviewer whose `command` is not on

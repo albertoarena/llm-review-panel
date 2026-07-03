@@ -56,7 +56,10 @@ prompt preview is elided to 80 chars; the full assembled prompt is in
 
 **Checkpoint 2** shows each raw review with its status. You can re-run a
 single reviewer (`rerun:opencode-ollama`) if its output looked bad without
-re-running the others. Useful when a local model has a bad day.
+re-running the others. Useful when a local model has a bad day. If one or
+more reviewers failed outright (timeout, nonzero exit, empty output),
+checkpoint 2 also offers `rerun:failed` to re-run all of them in one step
+while leaving the successful reviews untouched.
 
 **Checkpoint 3** prints the synthesizer's output. Read it as a real review;
 the synthesizer is allowed to disagree with individual reviewers.

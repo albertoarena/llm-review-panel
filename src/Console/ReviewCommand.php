@@ -88,6 +88,14 @@ final class ReviewCommand extends Command
 
                     return Command::SUCCESS;
                 }
+                if ($choice === 'rerun:failed') {
+                    foreach ($this->failedIds($outputs) as $id) {
+                        $output->writeln("Re-running {$id}...");
+                        $outputs = $this->replaceOutput($outputs, $this->pipeline->rerunReviewer($prepared, $id));
+                    }
+
+                    continue;
+                }
                 if (str_starts_with($choice, 'rerun:')) {
                     $id = substr($choice, 6);
                     $output->writeln("Re-running {$id}...");
@@ -196,6 +204,9 @@ final class ReviewCommand extends Command
     {
         $output->writeln('--- CHECKPOINT 2: raw reviews ---');
         $choices = ['continue', 'abort'];
+        if ($this->failedIds($outputs) !== []) {
+            $choices[] = 'rerun:failed';
+        }
         foreach ($outputs as $o) {
             $output->writeln(sprintf('  - %s [%s] (%dms)', $o->reviewerId, $o->status->value, $o->durationMs));
             if (! $o->status->isUsableForSynthesis() && $o->stderr !== '') {
@@ -205,6 +216,18 @@ final class ReviewCommand extends Command
         }
 
         return $questions->choice('What now?', $choices, 'continue');
+    }
+
+    /**
+     * @param  list<ReviewerOutput>  $outputs
+     * @return list<string>
+     */
+    private function failedIds(array $outputs): array
+    {
+        return array_values(array_map(
+            static fn (ReviewerOutput $o): string => $o->reviewerId,
+            array_filter($outputs, static fn (ReviewerOutput $o): bool => ! $o->status->isUsableForSynthesis()),
+        ));
     }
 
     private function printStderrPreview(string $stderr, OutputInterface $output): void
