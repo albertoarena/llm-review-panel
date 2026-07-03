@@ -140,6 +140,21 @@ it('rejects array indexing in dot-path with a clear error', function (): void {
     $this->parser->parse(rev('choices[0].text'), '{"choices":[{"text":"x"}]}');
 })->throws(InvalidArgumentException::class, 'array indexing');
 
+it('rejects a numeric dot-path segment as array indexing', function (): void {
+    $this->parser->parse(rev('choices.0.text'), '{"choices":[{"text":"x"}]}');
+})->throws(InvalidArgumentException::class, 'array indexing');
+
+it('rejects a leading numeric dot-path segment', function (): void {
+    $this->parser->parse(rev('0'), '["x"]');
+})->throws(InvalidArgumentException::class, 'array indexing');
+
+it('allows keys that merely contain digits', function (): void {
+    $output = $this->parser->parse(rev('data.item2'), '{"data":{"item2":"ok"}}');
+
+    expect($output->unstructured)->toBeFalse()
+        ->and($output->content)->toBe('ok');
+});
+
 it('strips inner fences from content extracted via result_path', function (): void {
     $inner = '{"summary":"hi","verdict":"ship"}';
     $stdout = json_encode(['result' => "```json\n{$inner}\n```"]);

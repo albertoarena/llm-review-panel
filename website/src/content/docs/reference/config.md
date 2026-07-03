@@ -44,8 +44,10 @@ streaming events, either configure the tool's non-streaming flag, or set
 orchestrator will NOT collapse JSONL into a single value.
 
 Dot-path navigation supports nested keys (`data.text`). It does NOT support
-array indexing (`choices[0].text`) and will refuse such paths with an
-error.
+array indexing, in either bracket (`choices[0].text`) or numeric-segment
+(`choices.0.text`) form, and will refuse such paths with an error. Keys that
+merely contain digits (`data.item2`) are fine; a segment that is entirely
+digits is treated as an index and rejected.
 
 ## Synthesizer
 

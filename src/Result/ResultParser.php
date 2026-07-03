@@ -59,7 +59,10 @@ final class ResultParser
 
     private function assertNoArrayIndexing(string $path): void
     {
-        if (str_contains($path, '[') || str_contains($path, ']')) {
+        $hasBrackets = str_contains($path, '[') || str_contains($path, ']');
+        $hasNumericSegment = array_filter(explode('.', $path), 'ctype_digit') !== [];
+
+        if ($hasBrackets || $hasNumericSegment) {
             throw new InvalidArgumentException(
                 "result_path '{$path}' uses array indexing, which is not supported. ".
                 'Use a non-streaming output mode or set result_path: null.'
