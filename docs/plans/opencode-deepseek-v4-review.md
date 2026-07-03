@@ -129,18 +129,18 @@ self-admitted non-issues.
 
 ## Verdict per issue
 
-| # | Claim | Verdict | Decision |
-|---|-------|---------|----------|
-| 1 | Stdin limit documented, not implemented | Valid but overstated | Skip (known limitation) |
-| 2 | 25ms polling burns CPU (High) | Real, severity inflated | Possibly (trivial tweak) |
-| 3 | Synthesizer not validated as enabled (High) | **Incorrect premise** | To be done (Option A) |
-| 4 | No "re-run all failed" at checkpoint 2 | Valid enhancement | To be done |
-| 5 | Dot-path rejects `[]` but `foo.0.bar` works | Valid, minor | To be done |
-| 6 | `synthesisFilename` re-parses JSON | Valid, trivial | Skip |
-| 7 | `commandExists` uses `shell_exec` | Valid, low-risk | To be done |
-| 8 | Schema defined in 3 unsynced places | Valid, low | Skip (over-engineering) |
-| 9 | rubric/prompt existence unvalidated | Non-issue (self-admitted) | Skip |
-| 10 | No truncation/continuation detection | Non-issue (out of scope) | Skip |
+| # | Claim | Verdict | Decision | Status |
+|---|-------|---------|----------|--------|
+| 1 | Stdin limit documented, not implemented | Valid but overstated | Skip (known limitation) | - |
+| 2 | 25ms polling burns CPU (High) | Real, severity inflated | Configurable (config + CLI) | Done `cf2db5a` |
+| 3 | Synthesizer not validated as enabled (High) | **Incorrect premise** | Option A (allow + validate) | Done `b51b18e` |
+| 4 | No "re-run all failed" at checkpoint 2 | Valid enhancement | To be done | Done `90fe2a1` |
+| 5 | Dot-path rejects `[]` but `foo.0.bar` works | Valid, minor | Reject numeric segments | Done `0e61855` |
+| 6 | `synthesisFilename` re-parses JSON | Valid, trivial | Skip | - |
+| 7 | `commandExists` uses `shell_exec` | Valid, low-risk | PATH scan | Done `0218f07` |
+| 8 | Schema defined in 3 unsynced places | Valid, low | Skip (over-engineering) | - |
+| 9 | rubric/prompt existence unvalidated | Non-issue (self-admitted) | Skip | - |
+| 10 | No truncation/continuation detection | Non-issue (out of scope) | Skip | - |
 
 ## Notes on the incorrect / inflated items
 
