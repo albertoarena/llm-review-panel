@@ -13,6 +13,8 @@ synthesizes their independent reviews into one consolidated result.
 It exists to automate a manual workflow: ask several different LLMs to review
 the same markdown plan, then compare viewpoints instead of trusting one model.
 
+**Documentation: https://albertoarena.github.io/llm-review-panel/**
+
 ## How it works
 
 ```
@@ -59,8 +61,6 @@ bin/llm-review-panel review path/to/plan.md
 - `docs/SCHEMA.md` — reviewer JSON output contract
 - `docs/IMPLEMENTATION.md` — phased build plan
 - `docs/CI.md` — CI and release automation
-
-Full documentation site: https://albertoarena.github.io/llm-review-panel/
 
 ## Status
 
