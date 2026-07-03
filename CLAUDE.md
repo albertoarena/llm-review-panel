@@ -4,265 +4,89 @@ Guidance for Claude Code (and other agents) working on this repository.
 
 ## What this is
 
-`llm-review-panel` is a standalone PHP CLI that orchestrates code/plan reviews
-across multiple LLM command-line tools (Claude Code, OpenCode, Gemini CLI, etc.),
-then synthesizes their independent reviews into one consolidated, balanced result.
+`llm-review-panel` is a standalone PHP CLI that runs the same code/plan review
+across multiple LLM command-line tools (Claude Code, OpenCode, Gemini, etc.) in
+parallel, then synthesizes their independent reviews into one balanced result. It
+automates a manual workflow: ask several different LLMs to review the same
+markdown plan, then compare viewpoints instead of trusting one model. The human
+stays in the loop at three checkpoints.
 
-It exists to automate a currently-manual workflow: ask several different LLMs to
-review the same markdown plan, then compare their viewpoints to get a balanced
-review instead of trusting a single model.
+## Stack
 
-The human stays in the loop at three checkpoints (see Flow).
+- PHP **8.3+** (hard floor; matrix 8.3/8.4/8.5). Strict types, PSR-12.
+- Symfony Console + Symfony Process **only**. No Laravel, no framework.
+- Pest for tests, Laravel Pint for formatting.
 
-## Non-negotiable constraints
+## Commands
 
-- **Standalone CLI, not a framework app.** Symfony Console + Symfony Process only.
-  Do NOT pull in Laravel. This is a single-purpose orchestration tool.
-- **No API keys, no paid API calls in the tool itself.** Reviewers are local CLI
-  binaries the user already has installed and authenticated (e.g. Claude Code runs
-  under the user's Pro/Max subscription auth; OpenCode points at a local Ollama
-  model). The tool spawns processes; it never makes HTTP calls to model APIs.
-- **Config-driven reviewers.** Adding a new reviewer (Gemini, etc.) must be a
-  `config.json` edit, NOT a code change. There is ONE generic CLI-reviewer class
-  driven entirely by config. Do not create one class per provider.
+```bash
+vendor/bin/pest                          # run tests
+vendor/bin/pint                          # format
+vendor/bin/pint --test                   # check formatting (CI gate)
+bin/llm-review-panel review <plan.md>    # run a review
+bin/llm-review-panel review <plan.md> --dry-run   # validate config + PATH, no spawn
+```
+
+## Hard constraints (every change must honor)
+
+- **No API calls.** Reviewers are local CLI binaries the user already installed
+  and authenticated (Claude Code under subscription auth, OpenCode against local
+  Ollama, etc.). The tool spawns processes; it never makes HTTP calls to model
+  APIs. No API keys, no HTTP client to model APIs, no database.
+- **Config-driven, single generic reviewer.** Adding a reviewer is a
+  `config.json` edit, never a code change. ONE generic CLI-reviewer path driven
+  by config; no per-provider subclasses. Do not hardcode model names, paths, or
+  reviewer lists in PHP.
 - **Reviewers run in parallel** via async `Process::start()` + polling, capped at
   `max_parallel`.
+- **One failing reviewer never aborts the run.** Bad output is stored as
+  `unstructured` and shown at checkpoint 2; other reviewers continue.
+- **Synthesizer tags findings**, not code. consensus/contested/singleton tagging
+  is done by the synthesizer model via `config/synthesis.md`. Do not write a PHP
+  differ.
+- **Read-only reviews.** Pass each agentic CLI its read-only switch (Claude Code:
+  `--allowedTools Read`). See `docs/DESIGN.md`.
+- **Checkpoints stay interactive** by default; only `--yes` skips them.
 
-## Flow
+## Flow (summary)
 
-```
-llm-review-panel review <plan.md> [--config path] [--yes] [--dry-run]
-  1. Load config.json + rubric file. Assemble review prompt (rubric + plan).
-  2. CHECKPOINT 1: print assembled prompt + list of enabled reviewers.
-     Prompt user: continue / abort. (--yes skips all checkpoints.)
-     If --dry-run: print each enabled reviewer's fully resolved command line
-     (placeholders substituted, prompt elided) and exit. No processes spawned.
-  3. Fan out: spawn each enabled reviewer in parallel (respect max_parallel).
-     Each reviewer's stdout is captured, result text extracted per result_path.
-  4. CHECKPOINT 2: render side-by-side summary of raw reviews.
-     Prompt user: continue / re-run a specific reviewer / abort.
-  5. Synthesis: spawn the configured synthesizer reviewer with all N reviews as
-     input + the synthesis prompt. Tagging of findings as
-     consensus/contested/singleton is the synthesizer model's job (done via the
-     synthesis prompt), NOT orchestrator code. Do not write a PHP differ.
-  6. CHECKPOINT 3: print consolidated review.
-     Prompt user: accept (write to output) / iterate / abort.
-  7. Persist run to <output_dir>/<timestamp>/.
-```
+`review <plan.md> [--config] [--yes] [--dry-run]`: load config + rubric → assemble
+prompt → **checkpoint 1** (confirm) → fan out reviewers in parallel → **checkpoint
+2** (raw reviews; re-run one / abort) → synthesize → **checkpoint 3** (accept /
+iterate / abort) → persist to `<output_dir>/<timestamp>/`. Full step-by-step,
+persistence layout, and failure taxonomy in `docs/DESIGN.md`.
 
-`--dry-run` is the supported way to validate config and CLI availability. It
-must resolve every placeholder and report any reviewer whose `command` is not
-on `PATH`.
-
-## Config model
-
-Single `config.json` (a `config.example.json` is committed; real `config.json` is
-gitignored). See `docs/CONFIG.md` for the full schema. Key ideas the implementation
-must honor:
-
-- Each reviewer entry is a command template. `args` is an array containing
-  placeholder tokens `{prompt}` and optionally `{model}`, substituted at spawn time.
-- `prompt_via`: `"arg"` (prompt substituted into `{prompt}` in args) or `"stdin"`
-  (prompt piped to the process; `{prompt}` absent from args).
-- `model`: optional. Only injected when the entry's `args` actually contain
-  `{model}`. **Do not force a model onto every reviewer** — Claude Code under a
-  subscription does not take an arbitrary model the way OpenCode/Gemini do.
-- `result_path`: dot-path into the process's JSON stdout to extract the review text
-  (e.g. `"result"` for Claude Code's JSON envelope). If `null`, treat entire stdout
-  as the result text (plain-text CLIs like OpenCode/Gemini). **`result_path`
-  assumes stdout is a single JSON object.** For CLIs that emit JSONL/streaming
-  events (e.g. Codex `exec --json`), either configure the tool's non-streaming
-  flag, or set `result_path: null` and accept the raw stream as the review.
-  The orchestrator will NOT collapse JSONL into text; that belongs in the
-  reviewer's own flags.
-- `enabled`: boolean. Ship defaults enabled only for the most common tools; others
-  present but disabled so the repo works for people who lack a given CLI.
-
-`config.example.json` ships entries for claude, opencode (Ollama), codex, gemini,
-aider (Ollama), and qwen. Only claude and opencode-ollama are enabled by default;
-the rest are present-but-disabled examples. See `docs/CONFIG.md` for the verified
-flags and cost notes per tool. The implementation does NOT special-case any of these;
-they all flow through the single generic CLI reviewer. They exist as ready-to-toggle
-examples, nothing more.
-
-## Reviewer output contract
-
-Each reviewer is prompted to return JSON matching the schema in
-`docs/SCHEMA.md`. Parsing MUST be tolerant: models sometimes wrap JSON in
-markdown fences or emit prose. Strategy:
-1. Strip ```json / ``` fences.
-2. Attempt JSON parse.
-3. On failure, store the raw text as an `unstructured` review (still shown to the
-   human at checkpoint 2) rather than crashing the whole run. One bad reviewer
-   must never abort the others.
-
-## Stdin size limit
-
-Claude Code caps piped stdin at 10MB. For large plans, write the plan to a temp
-file and reference its path in the prompt rather than inlining the whole thing.
-Prefer inlining for normal-sized plans; fall back to file-reference above a
-configurable threshold.
-
-## Read-only safety
-
-Review runs must not let a reviewer modify the repo. For Claude Code, pass
-`--allowedTools Read` (already in the example config). Keep this in mind if adding
-flags for other agentic CLIs.
+Config paths (`rubric_file`, `synthesizer.prompt_file`, `output_dir`) resolve
+**relative to the config file's directory**, not CWD.
 
 ## Conventions
 
-- PHP 8.3+, strict types, PSR-12. Floor is 8.3 (PHP 8.2 is in security-only
-  mode as of late 2025 and EOL Dec 2026; not worth supporting for a brand-new
-  project). Use typed class constants, readonly classes, and other 8.3+
-  features freely.
-- Pest for tests. **TDD is the default**: write the failing test first, then the
-  code to pass it, then refactor. New behavior without a preceding failing test
-  is a smell; review-time question is "where's the red commit?"
-- Laravel Pint for formatting (works fine outside Laravel; pulled in as a dev
-  dependency). Run `vendor/bin/pint` before committing. CI fails on unformatted
-  code (`vendor/bin/pint --test`).
-- KISS and clean separation: config loading, prompt assembly, process running,
-  result parsing, synthesis, and CLI/IO are distinct concerns. No god classes.
-- Process spawning isolated behind one class so it can be faked in tests (do NOT
-  spawn real LLM processes in the test suite — inject a fake process runner).
-- No em dashes in code comments, docs, or output. Direct, plain prose.
-- No marketing language in README or help text.
+- Use 8.3+ features freely: typed class constants, readonly classes.
+- **TDD is the default**: write the failing test first, then the code, then
+  refactor. New behavior without a preceding failing test is a smell; the
+  review-time question is "where's the red commit?"
+- Process spawning is faked in tests. Do NOT spawn real LLM processes in the
+  suite; inject the fake runner.
+- KISS and clean separation of concerns; no god classes. See `docs/DESIGN.md`.
+- No em dashes in code comments, docs, or output. No marketing language in README
+  or help text.
 
-## What NOT to do
+## Git commit conventions
 
-- Do not add Laravel, an HTTP client to model APIs, or a database.
-- Do not create per-provider reviewer subclasses.
-- Do not hardcode model names, paths, or reviewer lists in PHP. Config only.
-- Do not make checkpoints non-interactive by default (only `--yes` skips them).
-- Do not let one failing reviewer crash the run.
+- Format: `type: short subject` (max 50 chars), then a body paragraph explaining
+  what and why (not how). Use a heredoc for multi-line messages.
+- **No Claude attribution.** Never include "Generated with Claude Code" or
+  "Co-Authored-By: Claude".
 
-## Prerequisite files (must exist before implementation starts)
+## Where the detail lives
 
-CLAUDE.md and CONFIG.md reference four files that do not yet exist. Create them
-before writing any PHP, in this order:
-
-1. **`docs/SCHEMA.md`** — the JSON schema each reviewer is prompted to emit.
-   Defines the shape the tolerant parser targets.
-2. **`docs/IMPLEMENTATION.md`** — the phased build plan referenced from "Build
-   order" below. One phase per concern (config loader, prompt assembly, fake
-   process runner, real process runner, synthesis, CLI/IO, checkpoints).
-3. **`config/rubric.md`** — the rubric injected into every review prompt.
-   Quality of this file is where most of the tool's value lives; do not treat
-   it as a stub.
-4. **`config/synthesis.md`** — the synthesis prompt. Must instruct the
-   synthesizer to tag findings as consensus/contested/singleton (since the
-   orchestrator does not do this in code).
-
-Paths in `config.json` (`rubric_file`, `synthesizer.prompt_file`, `output_dir`)
-are resolved **relative to the config file's directory**, not CWD. This keeps
-runs reproducible regardless of where the user invokes the CLI from.
-
-## Build order
-
-See `docs/IMPLEMENTATION.md` for the phased plan. Build and test each phase before
-moving on. Start with config + prompt assembly + a faked process runner so the
-whole pipeline is testable before any real CLI is invoked.
-
-## Documentation site
-
-A static documentation site lives under `/website`, built with **Astro
-Starlight** (not bare Astro) and deployed to GitHub Pages on every push to
-`main`. Layout follows the standard Starlight layout:
-
-- `astro.config.mjs` configures the `starlight` integration with site title,
-  sidebar groups, and GitHub repo link.
-- `src/content.config.ts` declares the `docs` content collection using
-  Starlight's `docsLoader` / `docsSchema`.
-- `src/content/docs/` holds the actual pages as `.md` / `.mdx`. URLs derive
-  from the file path: `src/content/docs/getting-started/installation.md`
-  serves at `/getting-started/installation/`.
-- `src/styles/` for any custom CSS pulled in via Starlight's `customCss`.
-
-Sidebar sections (use exactly these top-level groups):
-
-1. **Getting started** — installation, quick start, configuration basics.
-2. **Concepts** — what a panel is, how synthesis works, why disagreement matters,
-   the rubric.
-3. **Reviewers** — one page per supported reviewer recipe (Claude Code,
-   OpenCode + Ollama, Codex, Gemini, Aider, Qwen).
-4. **Reference** — full `config.json` schema, JSON output schema (mirrors
-   `docs/SCHEMA.md`), CLI options.
-5. **Guides** — practical walkthroughs (running a real review end-to-end,
-   writing a good rubric, iterating on the synthesis prompt).
-6. **Roadmap / ideas** — open questions and things we'd like to try.
-
-Use Starlight's built-in components (`<Tabs>`, `<Card>`, `<Aside>`,
-`<LinkCard>`, `<Steps>`) for callouts, install variants per shell, and stepped
-walkthroughs rather than hand-rolling markdown patterns.
-
-The site is the user-facing front door. It must cover:
-
-- How to install and run the CLI (mirrors the README quick start, expanded).
-- Practical examples: walking through a real review on a sample plan, showing
-  the three checkpoints with screenshots or transcripts.
-- Reviewer setup recipes (one per supported tool: Claude Code, OpenCode + Ollama,
-  Codex, Gemini, Aider, Qwen). Each recipe = install link + the exact
-  `config.json` entry + any auth gotchas.
-- Tips and suggestions: choosing a panel that disagrees usefully, how to write
-  a good rubric, how to iterate on the synthesis prompt.
-- An "ideas" / roadmap page that collects things we'd like to try.
-
-**Rule: when a change ships, the docs site must be updated in the same PR.** A
-PR that changes user-facing behavior (CLI flags, config schema, reviewer
-recipes, supported tools) without a corresponding `/website` change should be
-sent back. The CI job that builds the site (see below) catches breakage but
-not staleness; reviewers check for staleness.
-
-The site exists at `/website` as of Phase 8. Develop locally with
-`cd website && npm install && npm run dev`. The deploy workflow at
-`.github/workflows/deploy-docs.yml` builds and publishes on every push to
-`main` via `actions/deploy-pages`.
-
-## README badges
-
-The README must surface a GitHub traffic badge (views + clones) generated by
-the maintainer's `github-traffic-badge` GitHub Action
-(https://github.com/albertoarena/github-traffic-badge). Wire it up as a separate
-workflow on a schedule; embed the resulting SVG URL in the README's header
-alongside the CI status badge. CI status badge from `.github/workflows/ci.yml`
-goes next to it.
-
-Other badges (license, PHP version) are allowed if they stay accurate; do not
-add aspirational ones (coverage, downloads) until they actually exist.
-
-## CI
-
-GitHub Actions workflow at `.github/workflows/ci.yml`. Runs on push and PR
-against `main`. Required jobs (all must pass before merge):
-
-- **format**: `vendor/bin/pint --test` (fails on unformatted code; do not
-  auto-fix in CI).
-- **test**: `vendor/bin/pest` on the supported PHP versions. Matrix is
-  PHP **8.3, 8.4, and 8.5** (all three required; do not drop 8.3 until it
-  hits EOL). Add newer versions as they ship; drop oldest only when EOL.
-
-A separate workflow at `.github/workflows/deploy-docs.yml` builds and deploys
-the `/website` Astro site to GitHub Pages on every push to `main`. Steps:
-checkout, setup Node, `npm ci` in `/website`, `npm run build`, upload the
-`dist/` artifact, deploy via the official `actions/deploy-pages` action.
-Permissions block: `pages: write`, `id-token: write`. The workflow must not
-run on PRs (build-only, no deploy) to avoid leaking previews to the live URL.
-
-Constraints:
-
-- CI MUST NOT spawn any real reviewer CLI (`claude`, `opencode`, etc.). Tests
-  run against the fake process runner only.
-- No secrets required. If a job ever needs one, that is a signal something
-  has drifted from the "no API calls" constraint.
-- Cache Composer dependencies between runs.
-
-## Git Commit Conventions
-
-### Format
-- type: short subject line (max 50 chars)
-- Detailed body paragraph explaining what and why (not how).
-
-### Rules
-- No Claude attribution - NEVER include "Generated with Claude Code" or "Co-Authored-By: Claude"
-- Keep first line under 50 characters
-- Use heredoc for multi-line commit messages
+- `docs/DESIGN.md` — architecture, full flow, checkpoints, path resolution, stdin
+  limit, read-only safety, persistence layout, failure taxonomy.
+- `docs/CONFIG.md` — full `config.json` schema, placeholder rules, per-reviewer
+  recipes and cost notes.
+- `docs/SCHEMA.md` — reviewer + synthesis JSON output contract and parser
+  tolerance strategy.
+- `docs/IMPLEMENTATION.md` — phased build plan and out-of-scope list.
+- `docs/CI.md` — CI jobs/matrix, deploy workflow, README badge requirements.
+- `website/CLAUDE.md` — documentation-site rules (Astro Starlight). **Rule: a
+  user-facing behavior change must update `/website` in the same PR.**
