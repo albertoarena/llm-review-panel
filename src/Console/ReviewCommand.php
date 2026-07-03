@@ -7,6 +7,7 @@ namespace LlmReviewPanel\Console;
 use LlmReviewPanel\Persistence\RunPersister;
 use LlmReviewPanel\Pipeline\PreparedRun;
 use LlmReviewPanel\Pipeline\ReviewPipeline;
+use LlmReviewPanel\Process\CommandLocator;
 use LlmReviewPanel\Prompt\CommandBuilder;
 use LlmReviewPanel\Prompt\ReviewerOutput;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -29,6 +30,7 @@ final class ReviewCommand extends Command
         private readonly ReviewPipeline $pipeline,
         private readonly CommandBuilder $builder = new CommandBuilder(),
         private readonly RunPersister $persister = new RunPersister(),
+        private readonly CommandLocator $locator = new CommandLocator(),
     ) {
         parent::__construct();
     }
@@ -130,7 +132,7 @@ final class ReviewCommand extends Command
                 static fn (string $a): string => str_contains($a, ' ') ? '"'.$a.'"' : $a,
                 $args,
             ));
-            $found = $this->commandExists($reviewer->command);
+            $found = $this->locator->exists($reviewer->command);
             $status = $found ? '<info>found on PATH</info>' : '<error>NOT FOUND on PATH</error>';
             if (! $found) {
                 $missing++;
@@ -220,13 +222,5 @@ final class ReviewCommand extends Command
         }
 
         return mb_substr($oneline, 0, self::PROMPT_PREVIEW_CHARS).'...';
-    }
-
-    private function commandExists(string $command): bool
-    {
-        $which = (PHP_OS_FAMILY === 'Windows') ? 'where' : 'command -v';
-        $result = shell_exec($which.' '.escapeshellarg($command).' 2>/dev/null');
-
-        return ! empty($result);
     }
 }
