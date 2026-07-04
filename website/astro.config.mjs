@@ -48,6 +48,7 @@ export default defineConfig({
             { label: 'config.json schema', slug: 'reference/config' },
             { label: 'JSON output schema', slug: 'reference/schema' },
             { label: 'CLI options', slug: 'reference/cli' },
+            { label: 'Changelog and releases', slug: 'reference/changelog' },
           ],
         },
         {

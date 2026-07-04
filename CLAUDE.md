@@ -88,5 +88,7 @@ Config paths (`rubric_file`, `synthesizer.prompt_file`, `output_dir`) resolve
   tolerance strategy.
 - `docs/IMPLEMENTATION.md` — phased build plan and out-of-scope list.
 - `docs/CI.md` — CI jobs/matrix, deploy workflow, README badge requirements.
+- `docs/RELEASING.md` — SemVer policy, compatibility surface, and the manual
+  release steps. `CHANGELOG.md` records what changed per version.
 - `website/CLAUDE.md` — documentation-site rules (Astro Starlight). **Rule: a
   user-facing behavior change must update `/website` in the same PR.**
