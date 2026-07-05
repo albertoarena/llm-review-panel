@@ -55,9 +55,12 @@ into CWD (not an XDG dir), which fits the per-project rubric model.
 - Use a **pinned Box Phar**, not a Composer dev-dependency (Decision 2). Box's
   own docs recommend against installing it through Composer because its
   dependency tree conflicts with host projects; this project keeps a deliberately
-  tiny dependency surface. Pin Box locally via Phive (`.phive/phars.xml`) and
-  download the same pinned version in CI. Box is the standard PHAR compiler for
-  PHP.
+  tiny dependency surface. Box is the standard PHAR compiler for PHP.
+- Acquire Box via a small `tools/box` bootstrap script (not Phive). The script
+  downloads a pinned Box version to a gitignored `tools/` dir and verifies its
+  sha256 before use. This is one mechanism for both local and CI, with no Phive
+  install and no GPG-key trust step. The pinned version + expected sha256 live in
+  the script (single source of truth for the pin).
 - Add `box.json`:
   - `main`: `bin/llm-review-panel`
   - `output`: `build/llm-review-panel.phar`
@@ -77,8 +80,17 @@ into CWD (not an XDG dir), which fits the per-project rubric model.
   release process. Box does not need to stamp it; do not add a second source of
   truth.
 
-Done when: `composer install --no-dev && phive install && tools/box compile`
-locally produces `build/llm-review-panel.phar`, and
+- Add a **non-blocking** PR-time smoke build (Decision on Phase A CI). A new job
+  (in `ci.yml` or a dedicated `phar-smoke.yml`) that on PRs runs
+  `composer install --no-dev`, `tools/box compile`, then exercises the PHAR:
+  `--version`, `--help`, `init` into a temp dir, and `review <sample> --dry-run`
+  against the scaffolded config. It does not spawn a real reviewer, so the
+  "no real CLI in CI" rule holds. Marked non-required so it never blocks merge;
+  it exists to catch PHAR-layout drift (notably `init` losing its templates)
+  early rather than at release time.
+
+Done when: `composer install --no-dev && tools/box compile` locally produces
+`build/llm-review-panel.phar`, and
 `php build/llm-review-panel.phar --version` prints the current version and
 `--dry-run` validates a config without spawning anything.
 
@@ -167,23 +179,28 @@ instructions for both paths.
 
 - Unit (Pest): the `init` command, per Phase B. No real processes, per the
   existing fake-runner rule.
-- CI smoke (in `release-phar.yml` and optionally a PR-time build job): compile
-  the PHAR, then run `--version`, `--help`, `init` into a temp dir, and
-  `review <sample-plan> --dry-run` against the scaffolded config. All of these
-  run without spawning a real reviewer, so the "no real CLI in CI" rule holds.
-- Do not add the PHAR build to the required merge gate initially; run it on
-  release only, plus a non-blocking PR build to catch box-config breakage early.
+- CI smoke, run in two places: the non-blocking PR-time build (Phase A) and the
+  release build (`release-phar.yml`, Phase C). Both compile the PHAR, then run
+  `--version`, `--help`, `init` into a temp dir, and `review <sample-plan>
+  --dry-run` against the scaffolded config. None spawn a real reviewer, so the
+  "no real CLI in CI" rule holds.
+- The PHAR build is never a required merge gate: the PR-time job is non-blocking
+  and exists to catch box-config breakage early; the release job runs on publish.
 
 ## Decisions (approved 2026-07-05)
 
 1. **`init` command**: yes. Static default config (no PATH detection in v1),
    scaffolded into CWD (not an XDG dir).
-2. **Box**: pinned Box Phar via Phive locally + a matching pinned download in
-   CI. Not a Composer dev-dependency.
+2. **Box**: pinned Box Phar acquired via a `tools/box` download-script (verifies
+   sha256) for both local and CI. Not a Composer dev-dependency, not Phive.
 3. **Tap bump**: manual for the first few releases; automate later once proven.
 4. **Compression**: `GZ`.
 5. **PHAR signing**: sha256 only (formula sha256 + `.sha256` sidecar). No
    GPG/openssl signing for now.
+6. **PR-time PHAR smoke build**: yes, added in Phase A, non-blocking. Compiles
+   the PHAR and exercises `--version` / `init` / `--dry-run` on every PR.
+7. **Sequencing**: build Phase B (`init`) first, then Phase A wraps and
+   validates it from inside `phar://`.
 
 Related, non-blocking: the Homebrew formula depends on `php` (latest), not a
 pinned `php@8.3`.
