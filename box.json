@@ -1,0 +1,9 @@
+{
+    "$schema": "https://raw.githubusercontent.com/box-project/box/main/res/schema.json",
+    "main": "bin/llm-review-panel",
+    "output": "build/llm-review-panel.phar",
+    "compression": "GZ",
+    "banner": "llm-review-panel. https://github.com/albertoarena/llm-review-panel",
+    "force-autodiscovery": true,
+    "files": ["config/rubric.md", "config/synthesis.md", "config.example.json"]
+}

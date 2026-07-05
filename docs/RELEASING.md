@@ -73,6 +73,27 @@ clone, not a published Packagist library, so the git tag is the version.
    version with a `-dev` suffix (for example `0.2.0-dev`) in a follow-up
    `chore:` commit.
 
+## Building the PHAR locally
+
+The tool compiles to a single-file PHAR with Box. Box is pinned and fetched by
+the `tools/box` script (it downloads a specific version and verifies its sha256;
+no Composer dev-dependency, no Phive):
+
+```bash
+composer install --no-dev        # ship runtime deps only
+tools/box compile                # writes build/llm-review-panel.phar
+php build/llm-review-panel.phar --version
+composer install                 # restore dev deps for tests
+```
+
+Box needs `phar.readonly=Off`; the `tools/box` wrapper sets it. `box.json` uses
+`force-autodiscovery` so Box pulls in `src` and the runtime `vendor`, plus an
+explicit `files` list for the config assets (`config/rubric.md`,
+`config/synthesis.md`, `config.example.json`) that `init` reads from inside the
+PHAR. A non-blocking `phar-smoke.yml` workflow compiles and exercises the PHAR
+on every PR. Building a release asset from the PHAR is a later step (see the
+Homebrew/PHAR distribution plan).
+
 ## Notes
 
 - Releases are cut by hand; there is no tag-triggered workflow. CI still gates

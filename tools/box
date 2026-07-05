@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+#
+# Bootstraps a pinned Box release and runs it. Box is the PHAR compiler; we pin
+# a specific version and verify its sha256 rather than depending on it through
+# Composer (its dependency tree conflicts with host projects) or Phive (which
+# needs GPG-key trust). One mechanism for both local and CI builds.
+#
+# Usage: tools/box <box-args>   e.g.  tools/box compile
+
+set -euo pipefail
+
+BOX_VERSION="4.7.0"
+BOX_SHA256="3d390eeaec33288098fe83f8a54c60cc575cb6be295f38ff4482b4b4f26f8d52"
+
+TOOLS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+BOX_PHAR="${TOOLS_DIR}/box.phar"
+BOX_URL="https://github.com/box-project/box/releases/download/${BOX_VERSION}/box.phar"
+
+sha256_of() {
+  if command -v sha256sum >/dev/null 2>&1; then
+    sha256sum "$1" | cut -d' ' -f1
+  else
+    shasum -a 256 "$1" | cut -d' ' -f1
+  fi
+}
+
+needs_download=1
+if [ -f "${BOX_PHAR}" ] && [ "$(sha256_of "${BOX_PHAR}")" = "${BOX_SHA256}" ]; then
+  needs_download=0
+fi
+
+if [ "${needs_download}" -eq 1 ]; then
+  echo "Downloading Box ${BOX_VERSION}..." >&2
+  curl -sSL -o "${BOX_PHAR}" "${BOX_URL}"
+  actual="$(sha256_of "${BOX_PHAR}")"
+  if [ "${actual}" != "${BOX_SHA256}" ]; then
+    echo "Box sha256 mismatch: expected ${BOX_SHA256}, got ${actual}" >&2
+    rm -f "${BOX_PHAR}"
+    exit 1
+  fi
+fi
+
+# Box refuses to write a PHAR while phar.readonly is on.
+exec php -d phar.readonly=0 "${BOX_PHAR}" "$@"

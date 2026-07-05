@@ -1,0 +1,51 @@
+name: PHAR smoke
+
+# Non-blocking: compiles the PHAR and exercises it end-to-end so box-config
+# drift (notably `init` losing its bundled templates) surfaces on every PR
+# rather than at release time. Not a required merge check.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    name: Build and exercise the PHAR
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+          ini-values: phar.readonly=0
+          extensions: zlib
+      - name: Get Composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: composer-${{ runner.os }}-nodev-${{ hashFiles('**/composer.json') }}
+          restore-keys: composer-${{ runner.os }}-nodev-
+      - run: composer install --no-dev --prefer-dist --no-progress --no-interaction
+      - name: Compile the PHAR
+        run: tools/box compile
+      - name: Exercise the PHAR
+        run: |
+          set -euo pipefail
+          PHAR="$PWD/build/llm-review-panel.phar"
+          php "$PHAR" --version
+          php "$PHAR" list | grep -q init
+          workdir="$(mktemp -d)"
+          php "$PHAR" init "$workdir"
+          test -f "$workdir/config.json"
+          test -f "$workdir/config/rubric.md"
+          test -f "$workdir/config/synthesis.md"
+          printf '# Plan\n\ntest\n' > "$workdir/plan.md"
+          ( cd "$workdir" && php "$PHAR" review plan.md --dry-run || true )

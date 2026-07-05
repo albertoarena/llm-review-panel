@@ -18,6 +18,10 @@ config.json
 # Composer
 /vendor/
 
+# PHAR build output and the downloaded Box compiler
+/build/
+/tools/box.phar
+
 # PHPUnit
 .phpunit.cache/
 .phpunit.result.cache
