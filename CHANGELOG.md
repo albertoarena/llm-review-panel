@@ -10,6 +10,12 @@ are defined in [`docs/RELEASING.md`](docs/RELEASING.md).
 
 ## [Unreleased]
 
+### Added
+
+- `init` command: scaffold `config.json` plus the default `config/rubric.md`
+  and `config/synthesis.md` into a directory (defaults to the current one).
+  Refuses to overwrite existing files without `--force`.
+
 ## [0.1.0] - 2026-07-04
 
 Initial release. Runs one review across multiple local LLM CLI tools in

@@ -39,18 +39,29 @@ processes. All authentication is handled by the underlying reviewer CLIs.
    bin/llm-review-panel list
    ```
 
-   You should see the `review` command listed.
+   You should see the `review` and `init` commands listed.
 
 </Steps>
 
-## Copy the example config
+## Scaffold the config
+
+```bash
+bin/llm-review-panel init
+```
+
+This writes `config.json` plus the default `config/rubric.md` and
+`config/synthesis.md` into the current directory. It never overwrites an
+existing file unless you pass `--force`, and it takes an optional target
+directory (`init path/to/dir`).
+
+If you prefer, copy the example by hand instead:
 
 ```bash
 cp config.example.json config.json
 ```
 
-Edit `config.json` to enable the reviewers you have installed. Only the
-reviewers with `"enabled": true` will run.
+Either way, edit `config.json` to enable the reviewers you have installed.
+Only the reviewers with `"enabled": true` will run.
 
 ## Sanity check with `--dry-run`
 

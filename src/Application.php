@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace LlmReviewPanel;
 
+use LlmReviewPanel\Console\InitCommand;
 use LlmReviewPanel\Console\ReviewCommand;
 use LlmReviewPanel\Pipeline\ReviewPipeline;
 use LlmReviewPanel\Process\RealProcessRunner;
@@ -19,5 +20,6 @@ final class Application extends BaseApplication
     {
         parent::__construct(self::NAME, self::VERSION);
         $this->addCommand(new ReviewCommand(new ReviewPipeline(new RealProcessRunner())));
+        $this->addCommand(new InitCommand());
     }
 }
