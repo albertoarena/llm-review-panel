@@ -1,6 +1,14 @@
 # Plan: Homebrew / PHAR distribution
 
-Status: draft for review | Target: v0.2.0 or later | Date: 2026-07-05
+Status: Phases A and B done; C/D/E gated on the timing note | Target: v0.2.0 or
+later | Date: 2026-07-05
+
+Progress:
+
+- Phase A (Box + PHAR build): **done** `3fdc7b0`
+- Phase B (`init` command): **done** `b8ded8d`
+- Phase C (release asset), D (Homebrew tap), E (install docs): not started,
+  gated on the timing note below.
 
 Ship `llm-review-panel` as a single-file PHAR, released on each tag via GitHub
 Actions, and installable through a Homebrew tap:
@@ -50,7 +58,7 @@ Resolved (Decision 1): add an `init` command that scaffolds `config.json` +
 bundled inside the PHAR. Static default config (no PATH detection in v1); scaffold
 into CWD (not an XDG dir), which fits the per-project rubric model.
 
-## Phase A: Box setup and local PHAR build
+## Phase A: Box setup and local PHAR build (done, `3fdc7b0`)
 
 - Use a **pinned Box Phar**, not a Composer dev-dependency (Decision 2). Box's
   own docs recommend against installing it through Composer because its
@@ -94,7 +102,7 @@ Done when: `composer install --no-dev && tools/box compile` locally produces
 `php build/llm-review-panel.phar --version` prints the current version and
 `--dry-run` validates a config without spawning anything.
 
-## Phase B: `init` command (scaffold config from the PHAR)
+## Phase B: `init` command (scaffold config from the PHAR) (done, `b8ded8d`)
 
 - New `init` command: `llm-review-panel init [--force] [target-dir]`.
   - Writes `config.json` (from the bundled `config.example.json`),
