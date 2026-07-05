@@ -2,7 +2,6 @@
 
 [![CI](https://github.com/albertoarena/llm-review-panel/actions/workflows/ci.yml/badge.svg)](https://github.com/albertoarena/llm-review-panel/actions/workflows/ci.yml)
 [![Repo views](https://raw.githubusercontent.com/albertoarena/llm-review-panel/traffic-data/badge-views.svg)](https://github.com/albertoarena/llm-review-panel)
-[![Repo clones](https://raw.githubusercontent.com/albertoarena/llm-review-panel/traffic-data/badge-clones.svg)](https://github.com/albertoarena/llm-review-panel)
 [![PHP 8.3+](https://img.shields.io/badge/PHP-8.3%2B-777bb4)](https://www.php.net/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 

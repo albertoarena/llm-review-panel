@@ -26,13 +26,3 @@ jobs:
           abbreviated: true
           output: badge-views.svg
           branch: traffic-data
-      - name: Clones badge
-        uses: albertoarena/github-traffic-badge@v1
-        with:
-          token: ${{ secrets.TRAFFIC_TOKEN }}
-          metric: clones
-          label: 'Repo clones'
-          color: green
-          abbreviated: true
-          output: badge-clones.svg
-          branch: traffic-data
